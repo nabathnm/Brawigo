@@ -196,6 +196,3 @@ class LoginPage extends StatelessWidget {
 * Gunakan state management dengan benar
 * Pisahkan API service dari UI
 * Gunakan environment variable untuk base URL API
-
-```
-```

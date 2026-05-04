@@ -2,19 +2,15 @@
 
 Dokumen ini sementara fokus pada poin penting dulu. Bagian lain menyusul.
 
-## 2. Stack dan Konvensi Dasar
+## 1. Stack dan Konvensi Dasar
 
-- Frontend: Flutter (Dart)
-- State Management: (pilih salah satu, sesuaikan tim)
-  - Provider / Riverpod / Bloc
-- HTTP Client: `http` / `dio`
-- Local Storage: `shared_preferences` / `hive`
-- Code Formatting: `dart format`
-- Linting: `flutter_lints`
+- Frontend: Flutter
+- State Management: BLOC
+- Backend Service: Supabase
 
 ---
 
-## 3. Setup Lokal (Wajib)
+## 2. Setup Lokal
 
 Jalankan sekali setelah clone:
 
@@ -37,14 +33,14 @@ flutter build apk
 
 ---
 
-## 4. Struktur Folder (Disarankan)
+## 3. Struktur Folder (Disarankan)
 
 ```text
 lib/
 │
 ├── core/            # config, constants, utils
 ├── data/            # model, datasource (API/local)
-├── presentation/    # UI (pages, widgets)
+├── features/    # fitur aplikasi (pages, widgets)
 │
 ├── routes/          # routing
 ├── main.dart
@@ -52,7 +48,7 @@ lib/
 
 ---
 
-## 5. Alur Kerja Git
+## 4. Alur Kerja Git
 
 Branch yang dipakai:
 
@@ -122,7 +118,7 @@ git push -u origin feature/nama-fitur
 
 ---
 
-## 6. Standar Commit Message
+## 5. Standar Commit Message
 
 Format:
 
@@ -147,15 +143,13 @@ Contoh:
 
 ---
 
-## 7. Standar Pull Request
+## 6. Standar Pull Request
 
 Isi PR:
 
 1. Ringkasan perubahan
 2. Masalah yang diselesaikan
 3. Cara test fitur
-4. Screenshot UI (wajib jika ada perubahan tampilan)
-5. Catatan API / env (jika ada)
 
 Checklist:
 
@@ -166,7 +160,7 @@ Checklist:
 
 ---
 
-## 8. Konvensi Coding Flutter
+## 7. Konvensi Coding Flutter
 
 ### Penamaan
 
@@ -195,7 +189,7 @@ class LoginPage extends StatelessWidget {
 
 ---
 
-## 9. Best Practice Tambahan
+## 8. Best Practice Tambahan
 
 * Gunakan `const` sebisa mungkin
 * Hindari rebuild berlebihan

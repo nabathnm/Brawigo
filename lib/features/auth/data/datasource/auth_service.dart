@@ -1,20 +1,38 @@
+import 'package:brawigo/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
-  final supabase = Supabase.instance.client;
+  final SupabaseService _supabase;
 
-  Future<void> login({required String email, required String password}) async {
-    await supabase.auth.signInWithPassword(email: email, password: password);
-  }
+  AuthService({SupabaseService? supabase})
+      : _supabase = supabase ?? SupabaseService.instance;
 
-  Future<void> register({
+  Future<AuthResponse> login({
     required String email,
     required String password,
   }) async {
-    await supabase.auth.signUp(email: email, password: password);
+    return await _supabase.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  Future<AuthResponse> register({
+    required String email,
+    required String password,
+  }) async {
+    return await _supabase.auth.signUp(
+      email: email,
+      password: password,
+    );
   }
 
   Future<void> logout() async {
-    await supabase.auth.signOut();
+    await _supabase.auth.signOut();
   }
+
+  User? get currentUser => _supabase.currentUser;
+
+  Stream<AuthState> get authStateChanges => _supabase.authStateChanges;
 }
+

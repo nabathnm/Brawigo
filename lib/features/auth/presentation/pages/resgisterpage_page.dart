@@ -1,4 +1,3 @@
-import 'package:brawigo/features/auth/presentation/pages/resgisterpage_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -6,38 +5,38 @@ import '../blocs/auth_bloc.dart';
 import '../blocs/auth_event.dart';
 import '../blocs/auth_state.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Login")),
+      appBar: AppBar(title: const Text("Register")),
 
       body: Padding(
         padding: const EdgeInsets.all(20),
 
         child: BlocConsumer<AuthBloc, AuthState>(
           listener: (context, state) {
-            // LOGIN BERHASIL
+            // REGISTER BERHASIL
             if (state is AuthSuccess) {
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text("Login berhasil")));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Register berhasil")),
+              );
 
-              // pindah halaman
-              // Navigator.push(...)
+              Navigator.pop(context);
             }
 
-            // LOGIN GAGAL
+            // REGISTER GAGAL
             if (state is AuthFailure) {
               ScaffoldMessenger.of(
                 context,
@@ -71,6 +70,19 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
 
+                const SizedBox(height: 20),
+
+                // CONFIRM PASSWORD
+                TextField(
+                  controller: confirmPasswordController,
+                  obscureText: true,
+
+                  decoration: const InputDecoration(
+                    labelText: "Confirm Password",
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+
                 const SizedBox(height: 30),
 
                 // LOADING
@@ -82,27 +94,29 @@ class _LoginPageState extends State<LoginPage> {
 
                     child: ElevatedButton(
                       onPressed: () {
+                        // VALIDASI
+                        if (passwordController.text !=
+                            confirmPasswordController.text) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Password tidak sama"),
+                            ),
+                          );
+
+                          return;
+                        }
+
                         context.read<AuthBloc>().add(
-                          LoginRequested(
+                          RegisterRequested(
                             email: emailController.text.trim(),
                             password: passwordController.text.trim(),
                           ),
                         );
                       },
 
-                      child: const Text("Login"),
+                      child: const Text("Register"),
                     ),
                   ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const RegisterPage()),
-                    );
-                  },
-
-                  child: const Text("Belum punya akun? Register"),
-                ),
               ],
             );
           },

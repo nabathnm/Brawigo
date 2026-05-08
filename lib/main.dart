@@ -9,17 +9,20 @@ Future<void> main() async {
 
   await dotenv.load(fileName: ".env");
 
-  final String apiUrl = dotenv.env['API_URL'] ?? '';
-  final String apiKey = dotenv.env['API_KEY'] ?? '';
+  final String supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+  final String supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
-  if (apiUrl.isEmpty || apiKey.isEmpty) {
-    debugPrint('Warning: API_URL or API_KEY is missing in the .env file.');
-  } else {
-    await Supabase.initialize(
-      url: apiUrl,
-      anonKey: apiKey,
-    );
-  }
+  assert(
+    supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty,
+    'SUPABASE_URL dan SUPABASE_ANON_KEY harus diisi di file .env',
+  );
+
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
+    debug: true
+  );
 
   runApp(const BrawigoApp());
 }
+

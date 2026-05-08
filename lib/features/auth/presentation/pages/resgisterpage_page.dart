@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:brawigo/features/seller/marketplace/pages/marketplace_page.dart';
+
 import '../blocs/auth_bloc.dart';
 import '../blocs/auth_event.dart';
 import '../blocs/auth_state.dart';
@@ -27,13 +29,19 @@ class _RegisterPageState extends State<RegisterPage> {
 
         child: BlocConsumer<AuthBloc, AuthState>(
           listener: (context, state) {
-            // REGISTER BERHASIL
+            // REGISTER BERHASIL (Auto Login)
             if (state is AuthSuccess) {
+              ScaffoldMessenger.of(context).clearSnackBars();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Register berhasil")),
+                const SnackBar(content: Text("Pendaftaran berhasil! Otomatis masuk.")),
               );
 
-              Navigator.pop(context);
+              // Hapus semua tumpukan halaman sebelumnya dan langsung masuk ke Marketplace
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const MarketPlacePage()),
+                (route) => false,
+              );
             }
 
             // REGISTER GAGAL

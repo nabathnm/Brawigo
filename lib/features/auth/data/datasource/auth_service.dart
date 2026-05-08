@@ -31,6 +31,14 @@ class AuthService {
     await _supabase.auth.signOut();
   }
 
+  /// Kirim ulang email konfirmasi ke [email].
+  Future<void> resendConfirmation({required String email}) async {
+    await _supabase.auth.resend(
+      type: OtpType.signup,
+      email: email,
+    );
+  }
+
   User? get currentUser => _supabase.currentUser;
 
   Stream<AuthState> get authStateChanges => _supabase.authStateChanges;

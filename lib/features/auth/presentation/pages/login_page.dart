@@ -1,4 +1,5 @@
 import 'package:brawigo/features/auth/presentation/pages/resgisterpage_page.dart';
+import 'package:brawigo/features/seller/marketplace/pages/marketplace_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -29,16 +30,50 @@ class _LoginPageState extends State<LoginPage> {
           listener: (context, state) {
             // LOGIN BERHASIL
             if (state is AuthSuccess) {
+              ScaffoldMessenger.of(context).clearSnackBars();
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(const SnackBar(content: Text("Login berhasil")));
 
-              // pindah halaman
-              // Navigator.push(...)
+              Navigator.pushReplacement(
+                context, 
+                MaterialPageRoute(builder: (_) => const MarketPlacePage())
+              );
+            }
+
+            // EMAIL BELUM DIKONFIRMASI
+            if (state is AuthEmailNotConfirmed) {
+              ScaffoldMessenger.of(context).clearSnackBars();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text("Email belum dikonfirmasi. Silakan cek inbox atau kirim ulang."),
+                  duration: const Duration(seconds: 6),
+                  action: SnackBarAction(
+                    label: "Kirim Ulang",
+                    onPressed: () {
+                      context.read<AuthBloc>().add(
+                        ResendConfirmationRequested(email: state.email),
+                      );
+                    },
+                  ),
+                ),
+              );
+            }
+
+            // BERHASIL KIRIM ULANG EMAIL
+            if (state is AuthResendConfirmationSuccess) {
+              ScaffoldMessenger.of(context).clearSnackBars();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Email konfirmasi baru telah dikirim! Silakan cek inbox Anda."),
+                  backgroundColor: Colors.green,
+                ),
+              );
             }
 
             // LOGIN GAGAL
             if (state is AuthFailure) {
+              ScaffoldMessenger.of(context).clearSnackBars();
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(SnackBar(content: Text(state.message)));

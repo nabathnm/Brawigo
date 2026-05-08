@@ -15,3 +15,8 @@ class RegisterRequested extends AuthEvent {
 }
 
 class LogoutRequested extends AuthEvent {}
+
+class ResendConfirmationRequested extends AuthEvent {
+  final String email;
+  ResendConfirmationRequested({required this.email});
+}

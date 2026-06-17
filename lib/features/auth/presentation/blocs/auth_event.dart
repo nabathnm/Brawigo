@@ -1,22 +1,16 @@
+
+
 abstract class AuthEvent {}
 
-class LoginRequested extends AuthEvent {
+class SendOtpRequested extends AuthEvent {
   final String email;
-  final String password;
-
-  LoginRequested({required this.email, required this.password});
+  SendOtpRequested(this.email);
 }
 
-class RegisterRequested extends AuthEvent {
+class VerifyOtpRequested extends AuthEvent {
   final String email;
-  final String password;
-
-  RegisterRequested({required this.email, required this.password});
+  final String otp;
+  VerifyOtpRequested(this.email, this.otp);
 }
 
 class LogoutRequested extends AuthEvent {}
-
-class ResendConfirmationRequested extends AuthEvent {
-  final String email;
-  ResendConfirmationRequested({required this.email});
-}

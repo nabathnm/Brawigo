@@ -1,8 +1,8 @@
 import 'package:brawigo/features/auth/presentation/blocs/auth_bloc.dart';
-import 'package:brawigo/features/auth/presentation/pages/login_page.dart';
 import 'package:brawigo/features/auth/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:brawigo/features/auth/presentation/pages/auth_screen.dart';
 
 class BrawigoApp extends StatelessWidget {
   const BrawigoApp({super.key});
@@ -18,7 +18,7 @@ class BrawigoApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        home: const LoginPage(),
+        home: const AuthScreen(),
       ),
     );
   }

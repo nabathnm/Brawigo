@@ -1,46 +1,25 @@
-import 'package:brawigo/core/services/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
-  final SupabaseService _supabase;
+  final SupabaseClient _supabase = Supabase.instance.client;
 
-  AuthService({SupabaseService? supabase})
-      : _supabase = supabase ?? SupabaseService.instance;
+  Future<void> sendOtp({required String email}) async {
+    await _supabase.auth.signInWithOtp(
+      email: email,
+      shouldCreateUser: true, 
+    );
+  }
 
-  Future<AuthResponse> login({
+  Future<AuthResponse> verifyOtp({
     required String email,
-    required String password,
+    required String otp,
   }) async {
-    return await _supabase.auth.signInWithPassword(
+    final response = await _supabase.auth.verifyOTP(
+      type: OtpType.email,
       email: email,
-      password: password,
+      token: otp,
     );
+
+    return response;
   }
-
-  Future<AuthResponse> register({
-    required String email,
-    required String password,
-  }) async {
-    return await _supabase.auth.signUp(
-      email: email,
-      password: password,
-    );
-  }
-
-  Future<void> logout() async {
-    await _supabase.auth.signOut();
-  }
-
-  /// Kirim ulang email konfirmasi ke [email].
-  Future<void> resendConfirmation({required String email}) async {
-    await _supabase.auth.resend(
-      type: OtpType.signup,
-      email: email,
-    );
-  }
-
-  User? get currentUser => _supabase.currentUser;
-
-  Stream<AuthState> get authStateChanges => _supabase.authStateChanges;
 }
-

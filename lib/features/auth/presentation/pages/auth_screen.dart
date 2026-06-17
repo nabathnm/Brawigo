@@ -15,14 +15,10 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLoading = false;
   bool _isOtpSent = false;
 
-  // Instansiasi file service yang baru kita buat di atas
   final AuthService _authService = AuthService();
 
-  // Memanggil fungsi kirim OTP dari service
   Future<void> _sendOtp() async {
     final email = _emailController.text.trim();
-
-    // Validasi domain UB tetap ada di UI agar mencegah request ke database jika email salah
     if (!email.endsWith('@student.ub.ac.id')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -35,7 +31,6 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // PANGGIL DARI AUTH SERVICE
       await _authService.sendOtp(email: email);
 
       setState(() {
@@ -58,7 +53,6 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  // Memanggil fungsi verifikasi OTP dari service
   Future<void> _verifyOtp() async {
     final email = _emailController.text.trim();
     final otp = _otpController.text.trim();
@@ -73,7 +67,6 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // PANGGIL DARI AUTH SERVICE
       final res = await _authService.verifyOtp(email: email, otp: otp);
 
       if (res.session != null) {
@@ -81,7 +74,6 @@ class _AuthScreenState extends State<AuthScreen> {
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(const SnackBar(content: Text('Login Berhasil!')));
-          // TODO: Arahkan ke halaman utama setelah login sukses
           // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomeScreen()));
         }
       }
@@ -105,7 +97,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // KODE UI DI BAWAH INI SAMA PERSIS SEPERTI SEBELUMNYA
     return Scaffold(
       appBar: AppBar(title: const Text('Login Mahasiswa UB')),
       body: Padding(

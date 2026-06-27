@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:brawigo/features/auth/data/datasource/auth_service.dart';
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});

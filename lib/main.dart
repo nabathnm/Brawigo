@@ -1,25 +1,36 @@
+import 'package:brawigo/brawigo.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import 'brawigo.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
 
-  final String apiUrl = dotenv.env['API_URL'] ?? '';
-  final String apiKey = dotenv.env['API_KEY'] ?? '';
+  final supabaseUrl = dotenv.env['SUPABASE_API_KEY']!;
+  final supabaseAnonKey = dotenv.env['SUPABASE_API_URL']!;
 
-  if (apiUrl.isEmpty || apiKey.isEmpty) {
-    debugPrint('Warning: API_URL or API_KEY is missing in the .env file.');
-  } else {
-    await Supabase.initialize(
-      url: apiUrl,
-      anonKey: apiKey,
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Brawigo',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+
+      home: const BrawigoApp(),
     );
   }
-
-  runApp(const BrawigoApp());
 }

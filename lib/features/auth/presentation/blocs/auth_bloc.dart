@@ -1,7 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
-
-import '../../services/auth_service.dart';
+import '../../data/datasource/auth_service.dart'; 
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -9,15 +8,40 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthService authService;
 
   AuthBloc(this.authService) : super(AuthInitial()) {
-    // LOGIN
-    on<LoginRequested>((event, emit) async {
-      emit(AuthLoading());
-
+    on<SendOtpRequested>((event, emit) async {
+      emit(AuthLoading()); 
       try {
-        await authService.login(email: event.email, password: event.password);
+        await authService.sendOtp(email: event.email);
+        emit(AuthOtpSent(event.email));
+      } on AuthException catch (e) {
+        emit(AuthFailure(e.message));
+      } catch (e) {
+        emit(AuthFailure(e.toString()));
+      }
+    });
+
+    on<VerifyOtpRequested>((event, emit) async {
+      emit(AuthLoading()); 
+      try {
+        await authService.verifyOtp(email: event.email, otp: event.otp);
         emit(AuthSuccess());
       } on AuthException catch (e) {
-        // Supabase mengembalikan "Email not confirmed" dengan status 400
+        emit(AuthFailure('OTP Salah atau Kadaluarsa. (${e.message})'));
+      } catch (e) {
+        emit(AuthFailure(e.toString()));
+      }
+    });
+
+    on<LoginRequested>((event, emit) async {
+      emit(AuthLoading());
+      try {
+        final response = await authService.login(email: event.email, password: event.password);
+        String role = 'buyer';
+        if (response.user != null) {
+          role = await authService.getUserRole(response.user!.id);
+        }
+        emit(AuthSuccess(role: role));
+      } on AuthException catch (e) {
         if (e.message.toLowerCase().contains('email not confirmed')) {
           emit(AuthEmailNotConfirmed(event.email));
         } else {
@@ -28,16 +52,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     });
 
-    // REGISTER
     on<RegisterRequested>((event, emit) async {
       emit(AuthLoading());
-
       try {
         await authService.register(
           email: event.email,
           password: event.password,
+          fullName: event.fullName,
+          username: event.username,
+          role: event.role,
         );
-        emit(AuthSuccess());
+        emit(AuthSuccess(role: event.role));
       } on AuthException catch (e) {
         emit(AuthFailure(e.message));
       } catch (e) {
@@ -45,24 +70,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
     });
 
-    // LOGOUT
-    on<LogoutRequested>((event, emit) async {
-      emit(AuthLoading());
-
-      try {
-        await authService.logout();
-        emit(AuthInitial());
-      } on AuthException catch (e) {
-        emit(AuthFailure(e.message));
-      } catch (e) {
-        emit(AuthFailure(e.toString()));
-      }
-    });
-
-    // RESEND CONFIRMATION EMAIL
     on<ResendConfirmationRequested>((event, emit) async {
       emit(AuthLoading());
-
       try {
         await authService.resendConfirmation(email: event.email);
         emit(AuthResendConfirmationSuccess());
@@ -72,6 +81,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthFailure(e.toString()));
       }
     });
+
+    on<LogoutRequested>((event, emit) async {
+      emit(AuthLoading());
+      try {
+        await Supabase.instance.client.auth.signOut();
+        emit(AuthInitial());
+      } catch (e) {
+        emit(AuthFailure(e.toString()));
+      }
+    });
   }
 }
-

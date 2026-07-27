@@ -4,19 +4,24 @@ class AuthInitial extends AuthState {}
 
 class AuthLoading extends AuthState {}
 
-class AuthSuccess extends AuthState {}
-
-class AuthFailure extends AuthState {
-  final String message;
-  AuthFailure(this.message);
+class AuthOtpSent extends AuthState {
+  final String email;
+  AuthOtpSent(this.email);
 }
 
-/// State khusus ketika email belum dikonfirmasi.
-/// UI bisa tampilkan tombol "Kirim ulang email konfirmasi".
+class AuthSuccess extends AuthState {
+  final String role;
+  AuthSuccess({this.role = 'buyer'});
+}
+
 class AuthEmailNotConfirmed extends AuthState {
   final String email;
   AuthEmailNotConfirmed(this.email);
 }
 
-/// State setelah berhasil kirim ulang email konfirmasi.
 class AuthResendConfirmationSuccess extends AuthState {}
+
+class AuthFailure extends AuthState {
+  final String message;
+  AuthFailure(this.message);
+}

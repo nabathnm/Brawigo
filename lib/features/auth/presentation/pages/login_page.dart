@@ -1,5 +1,5 @@
 import 'package:brawigo/features/auth/presentation/pages/resgisterpage_page.dart';
-import 'package:brawigo/features/seller/marketplace/pages/marketplace_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -35,9 +35,12 @@ class _LoginPageState extends State<LoginPage> {
                 context,
               ).showSnackBar(const SnackBar(content: Text("Login berhasil")));
 
+              // Arahkan ke MainScreen dan bawa parameter role
               Navigator.pushReplacement(
-                context, 
-                MaterialPageRoute(builder: (_) => const MarketPlacePage())
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MainScreen(role: state.role),
+                ),
               );
             }
 
@@ -46,7 +49,9 @@ class _LoginPageState extends State<LoginPage> {
               ScaffoldMessenger.of(context).clearSnackBars();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: const Text("Email belum dikonfirmasi. Silakan cek inbox atau kirim ulang."),
+                  content: const Text(
+                    "Email belum dikonfirmasi. Silakan cek inbox atau kirim ulang.",
+                  ),
                   duration: const Duration(seconds: 6),
                   action: SnackBarAction(
                     label: "Kirim Ulang",
@@ -65,7 +70,9 @@ class _LoginPageState extends State<LoginPage> {
               ScaffoldMessenger.of(context).clearSnackBars();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text("Email konfirmasi baru telah dikirim! Silakan cek inbox Anda."),
+                  content: Text(
+                    "Email konfirmasi baru telah dikirim! Silakan cek inbox Anda.",
+                  ),
                   backgroundColor: Colors.green,
                 ),
               );

@@ -61,16 +61,39 @@ class AuthService {
   }
 
   Future<String> getUserRole(String userId) async {
+    // 1. Cek dari metadata Supabase Auth terlebih dahulu (lebih akurat saat register sebelum email terkonfirmasi)
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user != null && user.userMetadata != null && user.userMetadata!['role'] != null) {
+        final metaRole = user.userMetadata!['role'].toString().toLowerCase().trim();
+        if (metaRole.isNotEmpty) {
+          // Sinkronisasikan role ke tabel profiles
+          try {
+            await _supabase.from('profiles').update({'role': metaRole}).eq('id', userId);
+          } catch (_) {}
+          return metaRole;
+        }
+      }
+    } catch (e) {
+      print("Error get metadata role: $e");
+    }
+
+    // 2. Jika di metadata kosong, ambil dari tabel profiles
     try {
       final data = await _supabase
           .from('profiles')
           .select('role')
           .eq('id', userId)
-          .single();
-      return data['role'] as String? ?? 'buyer';
+          .maybeSingle();
+      if (data != null && data['role'] != null) {
+        final tableRole = data['role'].toString().toLowerCase().trim();
+        if (tableRole.isNotEmpty) return tableRole;
+      }
     } catch (e) {
-      return 'buyer';
+      print("Error get profile role: $e");
     }
+
+    return 'buyer';
   }
 
   Future<void> resendConfirmation({required String email}) async {

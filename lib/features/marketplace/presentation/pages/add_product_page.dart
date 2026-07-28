@@ -39,7 +39,9 @@ class _AddProductPageState extends State<AddProductPage> {
 
   Future<void> _fetchCategories() async {
     try {
-      final response = await Supabase.instance.client.from('categories').select();
+      final response = await Supabase.instance.client
+          .from('categories')
+          .select();
       if (mounted) {
         setState(() {
           _categories = List<Map<String, dynamic>>.from(response);
@@ -51,22 +53,22 @@ class _AddProductPageState extends State<AddProductPage> {
         setState(() {
           _isLoadingCategories = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat kategori: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Gagal memuat kategori: $e')));
       }
     }
   }
 
   Future<void> _pickImage() async {
-    final List<XFile> images = await _picker.pickMultiImage(
-      imageQuality: 85,
-    );
+    final List<XFile> images = await _picker.pickMultiImage(imageQuality: 85);
     if (images.isNotEmpty) {
       if (images.length > 10) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Maksimal 10 foto yang diperbolehkan! Foto lainnya akan diabaikan.'),
+            content: Text(
+              'Maksimal 10 foto yang diperbolehkan! Foto lainnya akan diabaikan.',
+            ),
             backgroundColor: Colors.orange,
           ),
         );
@@ -242,8 +244,10 @@ class _AddProductPageState extends State<AddProductPage> {
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Deskripsi tidak boleh kosong';
-                        if (value.trim().length < 20) return 'Deskripsi minimal 20 karakter';
+                        if (value == null || value.isEmpty)
+                          return 'Deskripsi tidak boleh kosong';
+                        if (value.trim().length < 20)
+                          return 'Deskripsi minimal 20 karakter';
                         return null;
                       },
                     ),
@@ -257,15 +261,17 @@ class _AddProductPageState extends State<AddProductPage> {
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Harga tidak boleh kosong';
-                        if (double.tryParse(value) == null || double.parse(value) <= 0) {
+                        if (value == null || value.isEmpty)
+                          return 'Harga tidak boleh kosong';
+                        if (double.tryParse(value) == null ||
+                            double.parse(value) <= 0) {
                           return 'Masukkan angka harga yang valid dan lebih dari 0';
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // --- Dropdown Kategori ---
                     _isLoadingCategories
                         ? const Center(child: CircularProgressIndicator())
@@ -287,7 +293,8 @@ class _AddProductPageState extends State<AddProductPage> {
                                 _selectedCategory = value;
                               });
                             },
-                            validator: (value) => value == null ? 'Pilih kategori produk' : null,
+                            validator: (value) =>
+                                value == null ? 'Pilih kategori produk' : null,
                           ),
                     const SizedBox(height: 16),
 
@@ -319,8 +326,10 @@ class _AddProductPageState extends State<AddProductPage> {
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Stok tidak boleh kosong';
-                        if (int.tryParse(value) == null || int.parse(value) < 0) {
+                        if (value == null || value.isEmpty)
+                          return 'Stok tidak boleh kosong';
+                        if (int.tryParse(value) == null ||
+                            int.parse(value) < 0) {
                           return 'Masukkan angka stok yang valid (minimal 0)';
                         }
                         return null;
@@ -347,7 +356,10 @@ class _AddProductPageState extends State<AddProductPage> {
                       onPressed: _submitForm,
                       child: const Text(
                         'Simpan Produk',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],

@@ -40,6 +40,11 @@ class _ProfilePageState extends State<ProfilePage> {
           .eq('id', user.id)
           .single();
 
+      final metaRole = user.userMetadata?['role']?.toString().toLowerCase().trim();
+      if (metaRole != null && metaRole.isNotEmpty) {
+        data['role'] = metaRole;
+      }
+
       if (mounted) {
         setState(() {
           _profileData = data;

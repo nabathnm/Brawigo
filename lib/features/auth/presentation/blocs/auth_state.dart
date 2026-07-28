@@ -1,27 +1,40 @@
-abstract class AuthState {}
+import 'package:equatable/equatable.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class AuthInitial extends AuthState {}
+abstract class AuthState extends Equatable {
+  const AuthState();
 
-class AuthLoading extends AuthState {}
+  @override
+  List<Object> get props => [];
+}
 
-class AuthOtpSent extends AuthState {
+class AuthInitial extends AuthState{}
+
+class AuthLoading extends AuthState{}
+
+class AuthAuthenticated extends AuthState{
+  final User? user;
+
+  const AuthAuthenticated({this.user}); 
+
+  @override
+  List<Object> get props => user != null ? [user!] : [];
+}
+
+class AuthNeedsVerification extends AuthState{
   final String email;
-  AuthOtpSent(this.email);
+  const AuthNeedsVerification(this.email);
+  @override
+  List<Object> get props => [email];
 }
 
-class AuthSuccess extends AuthState {
-  final String role;
-  AuthSuccess({this.role = 'buyer'});
-}
-
-class AuthEmailNotConfirmed extends AuthState {
-  final String email;
-  AuthEmailNotConfirmed(this.email);
-}
-
-class AuthResendConfirmationSuccess extends AuthState {}
-
-class AuthFailure extends AuthState {
+class AuthError extends AuthState{
   final String message;
-  AuthFailure(this.message);
+  const AuthError({required this.message});
+  @override
+  List<Object> get props => [message];
 }
+
+//ini untuk splash screen
+
+class AuthUnauthenticated extends AuthState {}

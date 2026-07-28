@@ -8,9 +8,8 @@ import 'package:brawigo/features/auth/presentation/blocs/auth_state.dart';
 import 'package:brawigo/features/auth/presentation/pages/login_page.dart';
 
 class MainScreen extends StatefulWidget {
-  final String role; // 'buyer' atau 'seller'
-
-  const MainScreen({super.key, required this.role});
+  
+  const MainScreen();
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -25,19 +24,14 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     // Inisialisasi daftar halaman berdasarkan role
-    _pages = [
-      widget.role == 'buyer' 
-          ? const MarketPlaceBuyerPage() 
-          : const MarketPlaceSellerPage(),
-      const ProfilePage(),
-    ];
+    
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is AuthInitial || state is AuthFailure) {
+        if (state is AuthInitial || state is AuthError) {
           // Jika logout sukses (atau error token), kembalikan ke LoginPage
           Navigator.pushAndRemoveUntil(
             context,

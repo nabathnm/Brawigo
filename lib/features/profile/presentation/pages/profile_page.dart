@@ -223,7 +223,7 @@ class _ProfilePageState extends State<ProfilePage> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               Navigator.pop(dialogContext); // Tutup dialog
-              context.read<AuthBloc>().add(LogoutRequested()); // Dispatch event logout
+              //context.read<AuthBloc>().add(LogoutRequested()); // Dispatch event logout
             },
             child: const Text('Keluar', style: TextStyle(color: Colors.white)),
           ),

@@ -9,8 +9,8 @@ import 'package:brawigo/features/auth/presentation/blocs/auth_state.dart';
 import 'package:brawigo/features/auth/presentation/pages/login_page.dart';
 
 class MainScreen extends StatefulWidget {
-  
-  const MainScreen();
+  final bool isSeller;
+  const MainScreen({super.key, this.isSeller = false});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -24,9 +24,9 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    _isSeller = widget.role.toLowerCase().trim() == 'seller';
+    _isSeller = widget.isSeller;
     _pages = [
-      _isSeller ? const MarketPlaceSellerPage() : const MarketPlaceBuyerPage(),
+      _isSeller ? const MarketPlaceSellerPage() : const MarketplaceBuyerPage(),
       const Scaffold(
         backgroundColor: Color(0xFFEAF0F6),
         body: Center(

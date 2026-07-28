@@ -4,6 +4,7 @@ import 'package:brawigo/features/marketplace/presentation/pages/product_detail_p
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_state.dart';
+import 'package:go_router/go_router.dart';
 
 class MarketPlaceSellerPage extends StatefulWidget {
   const MarketPlaceSellerPage({super.key});
@@ -142,39 +143,78 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                       ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
+                  PopupMenuButton<String>(
+                    onSelected: (String value) {
+                      if (value == 'buyer') {
+              
+                        context.go('/buyer');
+                      }
+                    },
+                    offset: const Offset(
+                      0,
+                      45,
                     ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(10),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Row(
-                      children: [
-                        Text(
-                          "Seller",
-                          style: TextStyle(
-                            color: Color(0xFF334A60),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
+                    color: Colors.white,
+                    itemBuilder: (BuildContext context) =>
+                        <PopupMenuEntry<String>>[
+                          const PopupMenuItem<String>(
+                            value: 'seller',
+                            child: Text(
+                              'Seller',
+                              style: TextStyle(
+                                color: Color(0xFF1D4A79),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: Color(0xFF334A60),
-                          size: 20,
-                        ),
-                      ],
+                          const PopupMenuItem<String>(
+                            value: 'buyer',
+                            child: Text(
+                              'Buyer',
+                              style: TextStyle(
+                                color: Color(0xFF4A5D70),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(10),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        children: [
+                          Text(
+                            "Seller",
+                            style: TextStyle(
+                              color: Color(0xFF334A60),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: Color(0xFF334A60),
+                            size: 20,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

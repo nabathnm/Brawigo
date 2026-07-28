@@ -31,6 +31,10 @@ class UpdateProduct extends MarketplaceEvent {
   final String name;
   final String description;
   final double price;
+  final int? stock;
+  final String? categoryId;
+  final String? condition;
+  final String? pickupLocation;
   final XFile? newImage;
   final String? oldImageUrl;
 
@@ -39,6 +43,10 @@ class UpdateProduct extends MarketplaceEvent {
     required this.name,
     required this.description,
     required this.price,
+    this.stock,
+    this.categoryId,
+    this.condition,
+    this.pickupLocation,
     this.newImage,
     this.oldImageUrl,
   });

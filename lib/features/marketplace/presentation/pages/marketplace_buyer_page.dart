@@ -10,7 +10,7 @@ class MarketPlaceBuyerPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text(
           "Pasar Brawigo",

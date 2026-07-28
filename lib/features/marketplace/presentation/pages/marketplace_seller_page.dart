@@ -1,9 +1,13 @@
+import 'package:brawigo/features/marketplace/presentation/pages/widgets/custom_search.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/widgets/header.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/widgets/seller_product_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/product_detail_page.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_state.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/update_product_page.dart';
 
 class MarketPlaceSellerPage extends StatefulWidget {
   const MarketPlaceSellerPage({super.key});
@@ -81,176 +85,28 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(
-        0xFFEAF0F6,
-      ), // Soft Ice Blue Background sesuai referensi
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Column(
           children: [
-            // --- Header Bagian Atas ---
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(15),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const CircleAvatar(
-                          radius: 22,
-                          backgroundImage: AssetImage(
-                            'assets/images/profil.png',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            "Selamat Datang,",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF6A7A8A),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            "John Doe",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1D4A79),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(10),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      children: [
-                        Text(
-                          "Seller",
-                          style: TextStyle(
-                            color: Color(0xFF334A60),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: Color(0xFF334A60),
-                          size: 20,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Header(),
             ),
-
-            // --- Area Pencarian & Tombol Filter ---
+            SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha(8),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (val) {
-                          setState(() {
-                            _searchQuery = val.toLowerCase();
-                          });
-                        },
-                        decoration: const InputDecoration(
-                          hintText: 'Cari produk saya..',
-                          hintStyle: TextStyle(
-                            color: Color(0xFF8C9AA8),
-                            fontSize: 15,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.search_rounded,
-                            color: Color(0xFF4A5D70),
-                            size: 22,
-                          ),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 16),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withAlpha(8),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.filter_list_rounded,
-                        color: Color(0xFF334A60),
-                        size: 24,
-                      ),
-                      onPressed: () {
-                        // Fitur filter tambahan (opsional)
-                      },
-                    ),
-                  ),
-                ],
+              child: CustomSearch(
+                controller: _searchController,
+                hintText: 'Cari produk saya..',
+                onChanged: (val) {
+                  setState(() {
+                    _searchQuery = val.toLowerCase();
+                  });
+                },
+                onFilterPressed: () {
+                  // Fitur filter tambahan (opsional)
+                },
               ),
             ),
             const SizedBox(height: 16),
@@ -302,7 +158,7 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                     // Daftar label filter chips
                     final filters = [
                       'Semua (${allProducts.length})',
-                      'Tersedia (${availableProducts.length})',
+                      'Aktif (${availableProducts.length})',
                       'Habis (${outOfStockProducts.length})',
                       'Arsip (${archivedProducts.length})',
                     ];
@@ -354,9 +210,18 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                                   ),
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? const Color(0xFF2E6399)
-                                        : Colors.white,
+                                    gradient: isSelected
+                                        ? const LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Color(0xFF6097D0),
+                                              Color(0xFF244C80),
+                                            ],
+                                            stops: [0.0, 1.0],
+                                          )
+                                        : null,
+                                    color: isSelected ? null : Colors.white,
                                     borderRadius: BorderRadius.circular(16),
                                     border: isSelected
                                         ? null
@@ -368,7 +233,7 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                                         ? [
                                             BoxShadow(
                                               color: const Color(
-                                                0xFF2E6399,
+                                                0xFF244C80,
                                               ).withAlpha(60),
                                               blurRadius: 8,
                                               offset: const Offset(0, 3),
@@ -427,9 +292,11 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                                   separatorBuilder: (context, index) =>
                                       const SizedBox(height: 16),
                                   itemBuilder: (context, index) {
-                                    return _buildProductCard(
-                                      context,
-                                      displayedProducts[index],
+                                    final item = displayedProducts[index];
+                                    return SellerProductCard(
+                                      product: item,
+                                      onDelete: () =>
+                                          _showDeleteDialog(context, item),
                                     );
                                   },
                                 ),
@@ -621,11 +488,10 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                       bottomLeft: Radius.circular(20),
                     ),
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Fitur Edit Produk akan segera tersedia!",
-                          ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => UpdateProductPage(product: product),
                         ),
                       );
                     },

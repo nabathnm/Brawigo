@@ -24,6 +24,7 @@ class BrawigoApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Brawigo',
         theme: ThemeData(
+          fontFamily: 'PlusJakartaSans',
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),

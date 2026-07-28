@@ -123,6 +123,10 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
         'product_name': event.name,
         'description': event.description,
         'price': event.price,
+        if (event.stock != null) 'stock': event.stock,
+        if (event.categoryId != null) 'category_id': event.categoryId,
+        if (event.condition != null) 'condition': event.condition,
+        if (event.pickupLocation != null) 'pickup_location': event.pickupLocation,
         if (imageUrl != null) 'thumbnail_url': imageUrl,
       }).eq('id', event.id);
 

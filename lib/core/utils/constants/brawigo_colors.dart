@@ -1,30 +1,56 @@
 import 'package:flutter/material.dart';
 
 class BrawigoColors {
-  // Primary Colors
-  static const Color primaryLight = Color(0xffF2EEEA);
-  static const Color primaryLightHover = Color(0xffebe5e0);
-  static const Color primaryLightActive = Color(0xffd6cabf);
-  static const Color primaryNormal = Color(0xff7b542f);
-  static const Color primaryNormalHover = Color(0xff6f4c2a);
-  static const Color primaryNormalActive = Color(0xff624326);
-  static const Color primaryDark = Color(0xff5c3f23);
-  static const Color primaryDarkHover = Color(0xff4a321c);
-  static const Color primaryDarkActive = Color(0xff372615);
-  static const Color primaryDarker = Color(0xff2b1d10);
+  // --- Primary Colors (Scale 50 - 950) ---
+  static const Color primary50 = Color(0xfff3f7fc);
+  static const Color primary100 = Color(0xffe6edf8);
+  static const Color primary200 = Color(0xffc8daef);
+  static const Color primary300 = Color(0xff97bae2);
+  static const Color primary400 = Color(0xff6097d0);
+  static const Color primary500 = Color(0xff3873b2);
+  static const Color primary = primary500;
+  static const Color primary600 = Color(0xff2b5f9e);
+  static const Color primary700 = Color(0xff244c80);
+  static const Color primary800 = Color(0xff21426b);
+  static const Color primary900 = Color(0xff20395a);
+  static const Color primary950 = Color(0xff15243c);
 
-  // Base Colors
+  // --- Blue / Primary State Colors ---
+  static const Color blueLight = Color(0xffe8f3ff);
+  static const Color blueLightHover = Color(0xffd9edff);
+  static const Color blueLightActive = Color(0xffb2daff);
+  static const Color blueNormal = Color(0xff0088ff);
+  static const Color blueNormalHover = Color(0xff007ae6);
+  static const Color blueNormalActive = Color(0xff006dcc);
+  static const Color blueDark = Color(0xff0066bf);
+  static const Color blueDarkHover = Color(0xff005299);
+  static const Color blueDarkActive = Color(0xff003d73);
+  static const Color blueDarker = Color(0xff003059);
+
+  // Legacy Primary aliases mapped to Blue state colors
+  static const Color primaryLight = blueLight;
+  static const Color primaryLightHover = blueLightHover;
+  static const Color primaryLightActive = blueLightActive;
+  static const Color primaryNormal = blueNormal;
+  static const Color primaryNormalHover = blueNormalHover;
+  static const Color primaryNormalActive = blueNormalActive;
+  static const Color primaryDark = blueDark;
+  static const Color primaryDarkHover = blueDarkHover;
+  static const Color primaryDarkActive = blueDarkActive;
+  static const Color primaryDarker = blueDarker;
+
+  // --- Base Colors ---
   static const Color baseWhite = Colors.white;
   static const Color baseBlack = Colors.black;
   static const Color baseBackground = Color(0xfffdfdfd);
 
-  // Text Colors
-  static const Color textHeading = Color(0xff2B1D10);
+  // --- Text Colors ---
+  static const Color textHeading = Color(0xff15243c); // Aligned with primary950
   static const Color textPrimary = Color(0xff1A1A1A);
   static const Color textSecondary = Color(0xff515151);
   static const Color textWhite = Colors.white;
 
-  // Neutral
+  // --- Neutral ---
   static const Color neutralLight = Color(0xfffdfdfd);
   static const Color neutralLightHover = Color(0xfffbfbfb);
   static const Color neutralLightActive = Color(0xfff7f7f7);
@@ -36,39 +62,39 @@ class BrawigoColors {
   static const Color neutralDarkActive = Color(0xff676767);
   static const Color neutralDarker = Color(0xff515151);
 
-  // Green
-  static const Color greenLight = Color(0xffeaf2ef);
-  static const Color greenLightHover = Color(0xffe0ece6);
-  static const Color greenLightActive = Color(0xffbed7cc);
-  static const Color greenNormal = Color(0xff2e7d5b);
-  static const Color greenNormalHover = Color(0xff297152);
-  static const Color greenNormalActive = Color(0xff256449);
-  static const Color greenDark = Color(0xff235e44);
-  static const Color greenDarkHover = Color(0xff1c4b37);
-  static const Color greenDarkActive = Color(0xff153829);
-  static const Color greenDarker = Color(0xff102c20);
+  // --- Green ---
+  static const Color greenLight = Color(0xffe8f7eb);
+  static const Color greenLightHover = Color(0xffddf3e2);
+  static const Color greenLightActive = Color(0xffb9e6c3);
+  static const Color greenNormal = Color(0xff1cae50);
+  static const Color greenNormalHover = Color(0xff199d48);
+  static const Color greenNormalActive = Color(0xff168b40);
+  static const Color greenDark = Color(0xff15833c);
+  static const Color greenDarkHover = Color(0xff116830);
+  static const Color greenDarkActive = Color(0xff0d4e24);
+  static const Color greenDarker = Color(0xff0a3d1c);
 
-  // Yellow
-  static const Color yellowLight = Color(0xfffefaed);
-  static const Color yellowLightHover = Color(0xfffdf7e4);
-  static const Color yellowLightActive = Color(0xfffbeec8);
-  static const Color yellowNormal = Color(0xfff2c94c);
-  static const Color yellowNormalHover = Color(0xffdab544);
-  static const Color yellowNormalActive = Color(0xffc2a13d);
-  static const Color yellowDark = Color(0xffb69739);
-  static const Color yellowDarkHover = Color(0xff91792e);
-  static const Color yellowDarkActive = Color(0xff6d5a22);
-  static const Color yellowDarker = Color(0xff55461b);
+  // --- Yellow ---
+  static const Color yellowLight = Color(0xfffef8e4);
+  static const Color yellowLightHover = Color(0xfffdf6db);
+  static const Color yellowLightActive = Color(0xfffaebb2);
+  static const Color yellowNormal = Color(0xfff0c000);
+  static const Color yellowNormalHover = Color(0xffd8ad00);
+  static const Color yellowNormalActive = Color(0xffc09a00);
+  static const Color yellowDark = Color(0xffb49000);
+  static const Color yellowDarkHover = Color(0xff907300);
+  static const Color yellowDarkActive = Color(0xff6c5600);
+  static const Color yellowDarker = Color(0xff544300);
 
-  // Red
-  static const Color redLight = Color(0xfffaecec);
-  static const Color redLightHover = Color(0xfff7e3e3);
-  static const Color redLightActive = Color(0xffeec5c5);
-  static const Color redNormal = Color(0xffc84545);
-  static const Color redNormalHover = Color(0xffb43e3e);
-  static const Color redNormalActive = Color(0xffa03737);
-  static const Color redDark = Color(0xff963434);
-  static const Color redDarkHover = Color(0xff782929);
-  static const Color redDarkActive = Color(0xff5a1f1f);
-  static const Color redDarker = Color(0xff461818);
+  // --- Red ---
+  static const Color redLight = Color(0xffffebeb);
+  static const Color redLightHover = Color(0xffffe0e0);
+  static const Color redLightActive = Color(0xffffbaba);
+  static const Color redNormal = Color(0xffff4444);
+  static const Color redNormalHover = Color(0xffe63d3d);
+  static const Color redNormalActive = Color(0xffcc3636);
+  static const Color redDark = Color(0xffbf3333);
+  static const Color redDarkHover = Color(0xff992929);
+  static const Color redDarkActive = Color(0xff731f1f);
+  static const Color redDarker = Color(0xff591818);
 }

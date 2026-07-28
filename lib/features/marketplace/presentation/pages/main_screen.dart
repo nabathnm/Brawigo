@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/marketplace_buyer_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/marketplace_seller_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/add_product_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/order_page.dart';
 import 'package:brawigo/features/profile/presentation/pages/profile_page.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_bloc.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_state.dart';
@@ -44,20 +45,7 @@ class _MainScreenState extends State<MainScreen> {
         ),
       ),
       const SizedBox(), // Placeholder untuk tombol tengah (+)
-      const Scaffold(
-        backgroundColor: Color(0xFFEAF0F6),
-        body: Center(
-          child: Text(
-            "Halaman Order\n(Segera Hadir)",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF6A7A8A),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
+      const OrderPage(),
       const ProfilePage(),
     ];
   }

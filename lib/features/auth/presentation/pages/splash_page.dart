@@ -2,8 +2,6 @@ import 'package:brawigo/features/auth/presentation/blocs/auth_bloc.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_event.dart';
 import 'package:flutter/material.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
-import '../blocs/auth_bloc.dart';
-import '../blocs/auth_event.dart';
 import '../blocs/auth_state.dart' ;
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

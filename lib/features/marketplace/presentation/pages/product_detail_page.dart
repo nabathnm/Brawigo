@@ -35,7 +35,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
       if (mounted) {
         setState(() {
-          _images = (response as List).map((e) => e['image_url'] as String).toList();
+          _images = (response as List)
+              .map((e) => e['image_url'] as String)
+              .toList();
           if (_images.isEmpty && widget.product['thumbnail_url'] != null) {
             _images.add(widget.product['thumbnail_url']);
           }
@@ -126,22 +128,27 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               child: _isLoadingImages
                   ? const Center(child: CircularProgressIndicator())
                   : _images.isNotEmpty
-                      ? PageView.builder(
-                          itemCount: _images.length,
-                          itemBuilder: (context, index) {
-                            return Image.network(
-                              _images[index],
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 100),
-                            );
-                          },
-                        )
-                      : Container(
-                          color: Colors.grey[200],
-                          child: const Icon(Icons.image, size: 100, color: Colors.grey),
-                        ),
+                  ? PageView.builder(
+                      itemCount: _images.length,
+                      itemBuilder: (context, index) {
+                        return Image.network(
+                          _images[index],
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.broken_image, size: 100),
+                        );
+                      },
+                    )
+                  : Container(
+                      color: Colors.grey[200],
+                      child: const Icon(
+                        Icons.image,
+                        size: 100,
+                        color: Colors.grey,
+                      ),
+                    ),
             ),
-            
+
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -161,7 +168,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.deepPurple.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
@@ -188,10 +198,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   const SizedBox(height: 24),
                   const Text(
                     "Deskripsi",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -206,10 +213,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                     title: const Text("Stok"),
                     trailing: Text(
                       "${product['stock'] ?? 0}",
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
-                  if (product['pickup_location'] != null && product['pickup_location'].toString().isNotEmpty)
+                  if (product['pickup_location'] != null &&
+                      product['pickup_location'].toString().isNotEmpty)
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       leading: const Icon(Icons.location_on_outlined),
@@ -235,7 +246,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   ),
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Fitur Beli / Chat Penjual segera hadir!')),
+                      const SnackBar(
+                        content: Text(
+                          'Fitur Beli / Chat Penjual segera hadir!',
+                        ),
+                      ),
                     );
                   },
                   child: const Text(

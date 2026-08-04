@@ -27,7 +27,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
   
     GoRoute(path: '/otp', builder: (context, state) {
-      final email = state.extra as String ?? '';
+      final email = (state.extra as String?) ?? '';
       return OtpPage(email:email);
     }),
     GoRoute(path: '/complete-profile', builder: (context, state) => const CompleteProfilePage()),

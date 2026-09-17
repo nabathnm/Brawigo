@@ -4,6 +4,9 @@ abstract class MarketplaceEvent {}
 
 class LoadProducts extends MarketplaceEvent {}
 
+class LoadSellerProducts extends MarketplaceEvent {}
+
+
 class AddProduct extends MarketplaceEvent {
   final String name;
   final String description;

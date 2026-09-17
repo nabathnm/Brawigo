@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/product_detail_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/update_product_page.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_state.dart';
@@ -661,11 +662,11 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                       bottomLeft: Radius.circular(20),
                     ),
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            "Fitur Edit Produk akan segera tersedia!",
-                          ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              UpdateProductPage(product: product),
                         ),
                       );
                     },

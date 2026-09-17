@@ -34,16 +34,25 @@ final GoRouter appRouter = GoRouter(
       path: '/onboarding-success',
       builder: (context, state) => const OnboardingSuccessPage(),
     ),
-    GoRoute(path: '/home', builder: (context, state) => const MarketplaceBuyerPage()),
+    GoRoute(
+      path: '/home',
+      builder: (context, state) => BlocProvider(
+        create: (context) => MarketplaceBloc()..add(LoadProducts()),
+        child: const MarketplaceBuyerPage(),
+      ),
+    ),
     GoRoute(
       path: '/buyer',
-      builder: (context, state) => const MarketplaceBuyerPage(),
+      builder: (context, state) => BlocProvider(
+        create: (context) => MarketplaceBloc()..add(LoadProducts()),
+        child: const MarketplaceBuyerPage(),
+      ),
     ),
     GoRoute(
       path: '/seller',
       builder: (context, state) {
         return BlocProvider(
-          create: (context) => MarketplaceBloc()..add(LoadProducts()),
+          create: (context) => MarketplaceBloc()..add(LoadSellerProducts()),
           child: const MainScreen(isSeller: true),
         );
       },

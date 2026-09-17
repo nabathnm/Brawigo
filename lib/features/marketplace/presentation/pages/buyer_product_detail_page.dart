@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart'; 
 
 class BuyerProductDetailPage extends StatelessWidget {
-  final Map<String, String> product;
+  final Map<String, dynamic> product;
 
   const BuyerProductDetailPage({super.key, required this.product});
 

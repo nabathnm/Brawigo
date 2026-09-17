@@ -9,9 +9,29 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
 
   MarketplaceBloc() : super(MarketplaceInitial()) {
     on<LoadProducts>(_onLoadProducts);
+    on<LoadSellerProducts>(_onLoadSellerProducts);
     on<AddProduct>(_onAddProduct);
     on<UpdateProduct>(_onUpdateProduct);
     on<DeleteProduct>(_onDeleteProduct);
+  }
+
+  Future<void> _onLoadSellerProducts(LoadSellerProducts event, Emitter<MarketplaceState> emit) async {
+    emit(MarketplaceLoading());
+    try {
+      final user = _supabase.auth.currentUser;
+      if (user == null) throw Exception("User belum login");
+
+      final response = await _supabase
+          .from('products')
+          .select()
+          .eq('seller_id', user.id)
+          .order('created_at', ascending: false);
+      
+      final products = List<Map<String, dynamic>>.from(response);
+      emit(MarketplaceLoaded(products: products));
+    } catch (e) {
+      emit(MarketplaceError(message: 'Gagal memuat produk seller: ${e.toString()}'));
+    }
   }
 
   Future<void> _onLoadProducts(LoadProducts event, Emitter<MarketplaceState> emit) async {

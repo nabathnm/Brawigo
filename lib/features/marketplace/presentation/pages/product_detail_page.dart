@@ -167,23 +167,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           ),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.deepPurple.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          product['condition'] == 'new' ? 'Baru' : 'Bekas',
-                          style: const TextStyle(
-                            color: Colors.deepPurple,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -219,14 +202,6 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                     ),
                   ),
-                  if (product['pickup_location'] != null &&
-                      product['pickup_location'].toString().isNotEmpty)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.location_on_outlined),
-                      title: const Text("Lokasi Pengambilan"),
-                      subtitle: Text(product['pickup_location']),
-                    ),
                 ],
               ),
             ),

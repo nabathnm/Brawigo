@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,13 +22,11 @@ class _AddProductPageState extends State<AddProductPage> {
   final _descController = TextEditingController();
   final _priceController = TextEditingController();
   final _stockController = TextEditingController(text: '1');
-  final _pickupLocationController = TextEditingController();
 
   List<XFile> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
 
   String? _selectedCategory;
-  String _selectedCondition = 'new';
   List<Map<String, dynamic>> _categories = [];
   bool _isLoadingCategories = true;
 
@@ -35,6 +34,8 @@ class _AddProductPageState extends State<AddProductPage> {
   void initState() {
     super.initState();
     _fetchCategories();
+    _nameController.addListener(() => setState(() {}));
+    _descController.addListener(() => setState(() {}));
   }
 
   Future<void> _fetchCategories() async {
@@ -63,7 +64,7 @@ class _AddProductPageState extends State<AddProductPage> {
   Future<void> _pickImage() async {
     final List<XFile> images = await _picker.pickMultiImage(imageQuality: 85);
     if (images.isNotEmpty) {
-      if (images.length > 10) {
+      if (_selectedImages.length + images.length > 10) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -73,11 +74,12 @@ class _AddProductPageState extends State<AddProductPage> {
           ),
         );
         setState(() {
-          _selectedImages = images.take(10).toList();
+          final spaceLeft = 10 - _selectedImages.length;
+          _selectedImages.addAll(images.take(spaceLeft));
         });
       } else {
         setState(() {
-          _selectedImages = images;
+          _selectedImages.addAll(images);
         });
       }
     }
@@ -85,6 +87,15 @@ class _AddProductPageState extends State<AddProductPage> {
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
+      if (_selectedImages.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Harap unggah minimal 1 foto produk!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
       if (_selectedCategory == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -99,8 +110,6 @@ class _AddProductPageState extends State<AddProductPage> {
       final desc = _descController.text.trim();
       final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
       final stock = int.tryParse(_stockController.text.trim()) ?? 1;
-      final pickupLoc = _pickupLocationController.text.trim();
-
       // Memicu event AddProduct ke MarketplaceBloc
       context.read<MarketplaceBloc>().add(
         AddProduct(
@@ -109,8 +118,6 @@ class _AddProductPageState extends State<AddProductPage> {
           price: price,
           stock: stock,
           categoryId: _selectedCategory!,
-          condition: _selectedCondition,
-          pickupLocation: pickupLoc.isEmpty ? null : pickupLoc,
           images: _selectedImages,
         ),
       );
@@ -123,8 +130,67 @@ class _AddProductPageState extends State<AddProductPage> {
     _descController.dispose();
     _priceController.dispose();
     _stockController.dispose();
-    _pickupLocationController.dispose();
     super.dispose();
+  }
+
+  // Helper widget for Label + *
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: RichText(
+        text: TextSpan(
+          text: text,
+          style: const TextStyle(
+            color: Color(0xFF1E3A8A),
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+          children: const [
+            TextSpan(
+              text: ' *',
+              style: TextStyle(color: Colors.red),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _buildInputDecoration({
+    String? hintText,
+    Widget? prefix,
+    Widget? suffix,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+
+      prefix: prefix,
+
+      suffix: suffix,
+
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
+      ),
+
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.red, width: 1.5),
+      ),
+    );
   }
 
   @override
@@ -146,16 +212,63 @@ class _AddProductPageState extends State<AddProductPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text("Tambah Produk")),
+        backgroundColor: Colors.grey.shade50,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 16.0, top: 8, bottom: 8),
+            child: InkWell(
+              onTap: () => Navigator.pop(context),
+              borderRadius: BorderRadius.circular(30),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Color(0xFF1E3A8A),
+                  size: 18,
+                ),
+              ),
+            ),
+          ),
+          leadingWidth: 64, // Padding + Icon Width
+          title: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Tambah Produk",
+                style: TextStyle(
+                  color: Color(0xFF1E3A8A),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              Text(
+                "Isi data produk baru",
+                style: TextStyle(color: Colors.blueGrey, fontSize: 12),
+              ),
+            ],
+          ),
+          centerTitle: false,
+        ),
         body: BlocBuilder<MarketplaceBloc, MarketplaceState>(
           builder: (context, state) {
-            // Tampilkan loading indicator ketika proses upload & insert berlangsung
             if (state is MarketplaceLoading) {
               return const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(),
+                    CircularProgressIndicator(color: Color(0xFF1E3A8A)),
                     SizedBox(height: 16),
                     Text('Menyimpan produk dan mengunggah gambar...'),
                   ],
@@ -164,167 +277,252 @@ class _AddProductPageState extends State<AddProductPage> {
             }
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // --- Area Image Picker ---
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey[400]!),
-                        ),
-                        child: _selectedImages.isEmpty
-                            ? const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.add_photo_alternate,
-                                    size: 50,
-                                    color: Colors.grey,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    "Ketuk untuk memilih hingga 10 foto",
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                ],
-                              )
-                            : ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: _selectedImages.length,
-                                itemBuilder: (context, index) {
-                                  final image = _selectedImages[index];
-                                  return Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
-                                      child: kIsWeb
-                                          ? Image.network(
-                                              image.path,
-                                              width: 180,
-                                              fit: BoxFit.cover,
-                                            )
-                                          : Image.file(
-                                              File(image.path),
-                                              width: 180,
-                                              fit: BoxFit.cover,
-                                            ),
-                                    ),
-                                  );
-                                },
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // --- Form Input ---
+                    // --- Nama Produk ---
+                    _buildLabel("Nama Produk"),
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nama Produk',
-                        border: OutlineInputBorder(),
+                      maxLength: 100,
+                      buildCounter:
+                          (
+                            context, {
+                            required currentLength,
+                            required isFocused,
+                            maxLength,
+                          }) => null, // Hide default counter
+                      decoration: _buildInputDecoration(
+                        hintText: 'Contoh: John Doe',
                       ),
                       validator: (value) => value == null || value.isEmpty
                           ? 'Nama produk tidak boleh kosong'
                           : null,
                     ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _descController,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Deskripsi Produk',
-                        border: OutlineInputBorder(),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          '${_nameController.text.length}/100',
+                          style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty)
-                          return 'Deskripsi tidak boleh kosong';
-                        if (value.trim().length < 20)
-                          return 'Deskripsi minimal 20 karakter';
-                        return null;
-                      },
                     ),
                     const SizedBox(height: 16),
+
+                    // --- Foto Produk ---
+                    _buildLabel("Foto Produk"),
+                    GestureDetector(
+                      onTap: _selectedImages.length < 10 ? _pickImage : null,
+                      child: DottedBorder(
+                        options: RoundedRectDottedBorderOptions(
+                          color: Colors.grey.shade400,
+                          strokeWidth: 1.5,
+                          dashPattern: const [6, 4],
+                          radius: const Radius.circular(12),
+                        ),
+                        child: Container(
+                          width: double.infinity,
+                          constraints: const BoxConstraints(minHeight: 140),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: _selectedImages.isEmpty
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.shade50,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.camera_alt,
+                                        color: Color(0xFF1E3A8A),
+                                        size: 24,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      "Ketuk untuk unggah foto",
+                                      style: TextStyle(
+                                        color: Color(0xFF1E3A8A),
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      "Maks. 10 foto · JPG, PNG · max 5 MB",
+                                      style: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  children: [
+                                    SizedBox(
+                                      height: 100,
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount:
+                                            _selectedImages.length +
+                                            (_selectedImages.length < 10
+                                                ? 1
+                                                : 0),
+                                        itemBuilder: (context, index) {
+                                          if (index == _selectedImages.length) {
+                                            // Tombol Tambah
+                                            return GestureDetector(
+                                              onTap: _pickImage,
+                                              child: Container(
+                                                width: 80,
+                                                margin: const EdgeInsets.only(
+                                                  right: 8,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blue.shade50,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: const Column(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.camera_alt,
+                                                      color: Color(0xFF1E3A8A),
+                                                    ),
+                                                    SizedBox(height: 4),
+                                                    Text(
+                                                      "Tambah",
+                                                      style: TextStyle(
+                                                        color: Color(
+                                                          0xFF1E3A8A,
+                                                        ),
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          }
+
+                                          final image = _selectedImages[index];
+                                          return Stack(
+                                            children: [
+                                              Container(
+                                                margin: const EdgeInsets.only(
+                                                  right: 8,
+                                                ),
+                                                width: 100,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color: Colors.grey.shade300,
+                                                  ),
+                                                ),
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  child: kIsWeb
+                                                      ? Image.network(
+                                                          image.path,
+                                                          fit: BoxFit.cover,
+                                                        )
+                                                      : Image.file(
+                                                          File(image.path),
+                                                          fit: BoxFit.cover,
+                                                        ),
+                                                ),
+                                              ),
+                                              Positioned(
+                                                top: 4,
+                                                right: 12,
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    setState(() {
+                                                      _selectedImages.removeAt(
+                                                        index,
+                                                      );
+                                                    });
+                                                  },
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.all(2),
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                          color: Colors.red,
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                    child: const Icon(
+                                                      Icons.close,
+                                                      color: Colors.white,
+                                                      size: 14,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      "Maks. 10 foto · JPG, PNG · max 5 MB",
+                                      style: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // --- Harga ---
+                    _buildLabel("Harga"),
                     TextFormField(
                       controller: _priceController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Harga',
-                        prefixText: 'Rp ',
-                        border: OutlineInputBorder(),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty)
-                          return 'Harga tidak boleh kosong';
-                        if (double.tryParse(value) == null ||
-                            double.parse(value) <= 0) {
-                          return 'Masukkan angka harga yang valid dan lebih dari 0';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // --- Dropdown Kategori ---
-                    _isLoadingCategories
-                        ? const Center(child: CircularProgressIndicator())
-                        : DropdownButtonFormField<String>(
-                            decoration: const InputDecoration(
-                              labelText: 'Kategori Produk',
-                              border: OutlineInputBorder(),
-                            ),
-                            value: _selectedCategory,
-                            hint: const Text('Pilih Kategori'),
-                            items: _categories.map((cat) {
-                              return DropdownMenuItem<String>(
-                                value: cat['id'] as String,
-                                child: Text(cat['name'] as String),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedCategory = value;
-                              });
-                            },
-                            validator: (value) =>
-                                value == null ? 'Pilih kategori produk' : null,
+                      decoration: _buildInputDecoration(
+                        hintText: '0',
+                        prefix: const Text(
+                          'Rp ',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
                           ),
-                    const SizedBox(height: 16),
-
-                    // --- Dropdown Kondisi ---
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Kondisi Produk',
-                        border: OutlineInputBorder(),
+                        ),
                       ),
-                      value: _selectedCondition,
-                      items: const [
-                        DropdownMenuItem(value: 'new', child: Text('Baru')),
-                        DropdownMenuItem(value: 'used', child: Text('Bekas')),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedCondition = value!;
-                        });
-                      },
                     ),
+
                     const SizedBox(height: 16),
 
                     // --- Stok ---
+                    _buildLabel("Stok"),
                     TextFormField(
                       controller: _stockController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Stok',
-                        border: OutlineInputBorder(),
-                      ),
+                      decoration: _buildInputDecoration(hintText: '0'),
                       validator: (value) {
                         if (value == null || value.isEmpty)
                           return 'Stok tidak boleh kosong';
@@ -337,31 +535,115 @@ class _AddProductPageState extends State<AddProductPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // --- Lokasi Pengambilan ---
-                    TextFormField(
-                      controller: _pickupLocationController,
-                      decoration: const InputDecoration(
-                        labelText: 'Lokasi Pengambilan (Opsional)',
-                        border: OutlineInputBorder(),
-                        hintText: 'Contoh: Gedung Filkom, UB',
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                    // --- Kategori ---
+                    _buildLabel("Kategori"),
+                    _isLoadingCategories
+                        ? const Center(child: CircularProgressIndicator())
+                        : Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.white,
+                            ),
+                            child: DropdownButtonFormField<String>(
+                              decoration: _buildInputDecoration(
+                                hintText: 'Pilih kategori produk',
+                              ),
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down,
+                                color: Colors.black87,
+                              ),
+                              initialValue: _selectedCategory,
+                              items: _categories.map((cat) {
+                                return DropdownMenuItem<String>(
+                                  value: cat['id'] as String,
+                                  child: Text(cat['name'] as String),
+                                );
+                              }).toList(),
+                              onChanged: (value) =>
+                                  setState(() => _selectedCategory = value),
+                              validator: (value) => value == null
+                                  ? 'Pilih kategori produk'
+                                  : null,
+                            ),
+                          ),
+                    const SizedBox(height: 16),
 
-                    // --- Tombol Submit ---
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                    // --- Deskripsi ---
+                    _buildLabel("Deskripsi"),
+                    TextFormField(
+                      controller: _descController,
+                      maxLines: 4,
+                      decoration: _buildInputDecoration(
+                        hintText: 'Jelaskan produk secara detail..',
                       ),
-                      onPressed: _submitForm,
-                      child: const Text(
-                        'Simpan Produk',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      validator: (value) {
+                        if (value == null || value.isEmpty)
+                          return 'Deskripsi tidak boleh kosong';
+                        if (value.trim().length < 20)
+                          return 'Deskripsi minimal 20 karakter';
+                        return null;
+                      },
+                    ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          'Min. 20 karakter',
+                          style: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+
+                    const SizedBox(height: 32),
+
+                    // --- Tombol Submit ---
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor:
+                              Colors.transparent, // Required for gradient
+                          shadowColor:
+                              Colors.transparent, // Disable default shadow
+                        ),
+                        onPressed: _submitForm,
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF3B82F6),
+                                Color(0xFF1E3A8A),
+                              ], // light to dark blue
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            child: const Text(
+                              'Simpan',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),

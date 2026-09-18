@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart'; 
+import 'package:go_router/go_router.dart';
 
 class BuyerProductDetailPage extends StatelessWidget {
   final Map<String, dynamic> product;
@@ -82,7 +83,7 @@ class BuyerProductDetailPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product['name'] ?? 'Rice Cooker Mikoya',
+                    product['product_name'] ?? product['name'] ?? 'Rice Cooker Mikoya',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -91,7 +92,7 @@ class BuyerProductDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    product['price'] ?? 'Rp200.000',
+                    product['price'] != null ? 'Rp ${product['price']}' : 'Rp200.000',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -312,7 +313,12 @@ class BuyerProductDetailPage extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      final productId = product['id']?.toString() ?? '';
+                      if (productId.isNotEmpty) {
+                        context.push('/checkout/$productId', extra: product);
+                      }
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4A7EBB),
                       elevation: 0,

@@ -83,7 +83,6 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
           },
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
@@ -460,70 +459,5 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
     );
   }
 
-  Widget _buildBottomNavBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
-                icon: Icons.home_rounded,
-                label: 'Beranda',
-                isActive: true,
-              ),
-              _buildNavItem(
-                icon: Icons.chat_bubble_rounded,
-                label: 'Pesan',
-                isActive: false,
-              ),
-              _buildNavItem(
-                icon: Icons.shopping_cart_rounded,
-                label: 'Order',
-                isActive: false,
-              ),
-              _buildNavItem(
-                icon: Icons.account_circle_rounded,
-                label: 'Profil',
-                isActive: false,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-  }) {
-    final Color color = isActive
-        ? BrawigoColors.blue600
-        : const Color(0xFFB0BAC3); 
-    return InkWell(
-      onTap: () {},
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 26),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

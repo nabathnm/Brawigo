@@ -27,6 +27,8 @@ class OtpVerificationRequested extends AuthEvent{
 //ini buat splash screen
 class AuthCheckRequested extends AuthEvent{}
 
+class LogoutRequested extends AuthEvent {}
+
 //ini buat complete_profile_page
 class ProfileCompletionRequested extends AuthEvent {
   final String fullName;

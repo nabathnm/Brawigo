@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 import 'chat_room_page.dart';
 
 class ChatListPage extends StatefulWidget {
-  const ChatListPage({super.key});
+  final bool isSeller;
+  const ChatListPage({super.key, this.isSeller = false});
 
   @override
   State<ChatListPage> createState() => _ChatListPageState();
@@ -37,11 +38,13 @@ class _ChatListPageState extends State<ChatListPage> {
     }
 
     try {
-      final convResponse = await _supabase
+      final query = _supabase
           .from('conversations')
-          .select('id, buyer_id, seller_id, product_id, updated_at')
-          .or('buyer_id.eq.${currentUser.id},seller_id.eq.${currentUser.id}')
-          .order('updated_at', ascending: false);
+          .select('id, buyer_id, seller_id, product_id, updated_at');
+
+      final convResponse = widget.isSeller
+          ? await query.eq('seller_id', currentUser.id).order('updated_at', ascending: false)
+          : await query.eq('buyer_id', currentUser.id).order('updated_at', ascending: false);
 
       final List<Map<String, dynamic>> enrichedConvs = [];
 

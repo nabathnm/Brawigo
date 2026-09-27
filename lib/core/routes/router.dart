@@ -16,6 +16,8 @@ import 'package:brawigo/features/profile/presentation/pages/profile_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/buyer_product_detail_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/buyer_search_page.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation : '/splash',
@@ -39,10 +41,30 @@ final GoRouter appRouter = GoRouter(
       path: '/onboarding-success',
       builder: (context, state) => const OnboardingSuccessPage(),
     ),
-    GoRoute(path: '/home', builder: (context, state) => const MarketplaceBuyerPage()),
+    GoRoute(
+      path: '/home', 
+      builder: (context, state) => BlocProvider(
+        create: (context) => MarketplaceBloc()..add(LoadProducts()),
+        child: const MarketplaceBuyerPage(),
+      )
+    ),
     GoRoute(
       path: '/buyer',
-      builder: (context, state) => const MarketplaceBuyerPage(),
+      builder: (context, state) => BlocProvider(
+        create: (context) => MarketplaceBloc()..add(LoadProducts()),
+        child: const MarketplaceBuyerPage(),
+      )
+    ),
+    GoRoute(
+      path: '/buyer-product-detail',
+      builder: (context, state) {
+        final product = state.extra as Map<String, String>? ?? {};
+        return BuyerProductDetailPage(product: product);
+      }
+    ),
+    GoRoute(
+      path: '/buyer-search',
+      builder: (context, state) => const BuyerSearchPage(),
     ),
     GoRoute(
       path: '/seller',

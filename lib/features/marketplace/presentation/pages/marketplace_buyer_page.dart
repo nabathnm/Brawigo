@@ -2,7 +2,11 @@ import 'dart:async';
 import 'dart:ui'; 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
+import '../bloc/marketplace_bloc.dart';
+import '../bloc/marketplace_event.dart';
+import '../bloc/marketplace_state.dart';
 import 'buyer_product_detail_page.dart';
 import 'buyer_search_page.dart';
 
@@ -18,48 +22,13 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
   int _currentCarouselIndex = 0;
   Timer? _carouselTimer;
 
-  late final List<Map<String, String>> _dummyProductsTerbaru;
-  late final List<Map<String, String>> _dummyProductsPopuler;
-
   @override
   void initState() {
     super.initState();
 
-    _dummyProductsTerbaru = [
-      {
-        'name': 'Rice Cooker Mikoya',
-        'category': 'Alat Elektronik',
-        'price': 'Rp 200.000',
-      },
-      {
-        'name': 'Hair Dryer Philips',
-        'category': 'Alat Elektronik',
-        'price': 'Rp 500.000',
-      },
-      {
-        'name': 'Kipas Angin Cosmos',
-        'category': 'Alat Elektronik',
-        'price': 'Rp 150.000',
-      },
-    ];
-
-    _dummyProductsPopuler = [
-      {
-        'name': 'Rice Cooker Mikoya',
-        'category': 'Alat Elektronik',
-        'price': 'Rp 200.000',
-      },
-      {
-        'name': 'Hair Dryer Philips',
-        'category': 'Alat Elektronik',
-        'price': 'Rp 500.000',
-      },
-      {
-        'name': 'Kipas Angin Cosmos',
-        'category': 'Alat Elektronik',
-        'price': 'Rp 150.000',
-      },
-    ];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MarketplaceBloc>().add(LoadProducts());
+    });
 
     _carouselTimer = Timer.periodic(const Duration(seconds: 7), (Timer timer) {
       if (_currentCarouselIndex < 2) {
@@ -89,21 +58,36 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
     return Scaffold(
       backgroundColor: BrawigoColors.blue100, 
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              _buildSearchBar(),
-              _buildCarousel(),
-              _buildSectionTitle('Produk Terbaru'),
-              _buildHorizontalProductList(_dummyProductsTerbaru),
-              _buildSectionTitle('Produk Populer'),
-              _buildHorizontalProductList(_dummyProductsPopuler),
-              const SizedBox(height: 30),
-            ],
-          ),
+        child: BlocBuilder<MarketplaceBloc, MarketplaceState>(
+          builder: (context, state) {
+            if (state is MarketplaceLoading) {
+              return const Center(child: CircularProgressIndicator(color: BrawigoColors.blue600));
+            } else if (state is MarketplaceError) {
+              return Center(child: Text(state.message));
+            } else if (state is MarketplaceLoaded) {
+              final products = state.products;
+              final terbaru = products.toList();
+              final populer = products.length > 3 ? products.sublist(0, 3) : products.toList();
+
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(context),
+                    _buildSearchBar(),
+                    _buildCarousel(),
+                    _buildSectionTitle('Produk Terbaru'),
+                    _buildHorizontalProductList(terbaru),
+                    _buildSectionTitle('Produk Populer'),
+                    _buildHorizontalProductList(populer),
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox.shrink();
+          },
         ),
       ),
       bottomNavigationBar: _buildBottomNavBar(),
@@ -211,10 +195,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
         child: TextField(
           readOnly: true, 
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const BuyerSearchPage()),
-            );
+            context.push('/buyer-search');
           },
           decoration: const InputDecoration(
             hintText: 'Cari produk',
@@ -374,15 +355,23 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
     );
   }
 
-  Widget _buildHorizontalProductList(List<Map<String, String>> products) {
+  Widget _buildHorizontalProductList(List<Map<String, dynamic>> products) {
+    if (products.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        child: Text(
+          "Belum ada produk tersedia.",
+          style: TextStyle(color: Colors.grey, fontSize: 14),
+        ),
+      );
+    }
     return SizedBox(
       height: 250,
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(
           dragDevices: {
             PointerDeviceKind.touch,
-            PointerDeviceKind
-                .mouse, 
+            PointerDeviceKind.mouse, 
             PointerDeviceKind.trackpad,
           },
         ),
@@ -394,15 +383,26 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
           separatorBuilder: (context, index) => const SizedBox(width: 16),
           itemBuilder: (context, index) {
             final product = products[index];
+            final imageUrl = product['thumbnail_url'] as String?;
+            final priceRaw = product['price']?.toString() ?? '0';
+            final priceFormatted = 'Rp $priceRaw';
+            final productName = product['product_name'] ?? 'Produk Brawigo';
+            
+            // Konversi ke Map<String, String> agar tidak error di BuyerProductDetailPage yang ada saat ini
+            final Map<String, String> stringProduct = {
+              'id': product['id']?.toString() ?? '',
+              'name': productName,
+              'category': 'Kategori', // belum ada join query untuk kategori
+              'price': priceFormatted,
+              'image_url': imageUrl ?? '',
+              'description': product['description']?.toString() ?? '',
+              'seller_id': product['seller_id']?.toString() ?? '',
+            };
+
             return GestureDetector(
               onTap: () {
-                // Navigasi ke halaman detail saat diklik
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => BuyerProductDetailPage(product: product),
-                  ),
-                );
+                // Navigasi ke halaman detail saat diklik menggunakan GoRouter
+                context.push('/buyer-product-detail', extra: stringProduct);
               },
               child: Container(
                 width: 155,
@@ -418,23 +418,27 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(15),
                     ),
-                    child: Image.asset(
-                      'assets/images/ricecooker.png',
-                      height: 145,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
+                    child: (imageUrl != null && imageUrl.isNotEmpty) 
+                      ? Image.network(
+                          imageUrl,
+                          height: 145,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              height: 145,
+                              width: double.infinity,
+                              color: Colors.grey.shade200,
+                              child: const Icon(Icons.broken_image, color: Colors.grey),
+                            );
+                          },
+                        )
+                      : Container(
                           height: 145,
                           width: double.infinity,
                           color: Colors.grey.shade200,
-                          child: const Icon(
-                            Icons.broken_image,
-                            color: Colors.grey,
-                          ),
-                        );
-                      },
-                    ),
+                          child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                        ),
                   ),
                   Expanded(
                     child: Padding(
@@ -443,7 +447,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            product['name']!,
+                            productName,
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -454,9 +458,9 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            product['category']!,
-                            style: const TextStyle(
+                          const Text(
+                            'Kategori',
+                            style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w500,
                               color: Color(0xFF64748B),
@@ -464,7 +468,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                           ),
                           const Spacer(),
                           Text(
-                            product['price']!,
+                            priceFormatted,
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,

@@ -22,7 +22,7 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
+  
   @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(providers: [BlocProvider<AuthBloc>(create: (context) => AuthBloc(supabaseClient: Supabase.instance.client))],

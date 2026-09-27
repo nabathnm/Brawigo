@@ -1,13 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart'; 
 
-class BuyerProductDetailPage extends StatelessWidget {
+class BuyerProductDetailPage extends StatefulWidget {
   final Map<String, String> product;
 
   const BuyerProductDetailPage({super.key, required this.product});
 
   @override
+  State<BuyerProductDetailPage> createState() => _BuyerProductDetailPageState();
+}
+
+class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
+  int _currentImageIndex = 0;
+  bool _isDescriptionExpanded = false;
+  List<String> _images = [];
+  bool _isLoadingImages = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchImages();
+    _saveToRecentlyViewed();
+  }
+
+  Future<void> _saveToRecentlyViewed() async {
+    final productId = widget.product['id'];
+    if (productId != null && productId.isNotEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      List<String> viewed = prefs.getStringList('recently_viewed') ?? [];
+      viewed.remove(productId); // Remove if exists
+      viewed.add(productId); // Add to end
+      if (viewed.length > 10) {
+        viewed.removeAt(0); // Keep max 10
+      }
+      await prefs.setStringList('recently_viewed', viewed);
+    }
+  }
+
+  Future<void> _fetchImages() async {
+    final productId = widget.product['id'];
+    if (productId != null && productId.isNotEmpty) {
+      final response = await Supabase.instance.client
+          .from('product_images')
+          .select('image_url')
+          .eq('product_id', productId)
+          .order('image_order', ascending: true);
+      
+      final List<String> fetchedImages = (response as List).map((e) => e['image_url'] as String).toList();
+      
+      if (mounted) {
+        setState(() {
+          if (fetchedImages.isNotEmpty) {
+            _images = fetchedImages;
+          } else {
+            final thumb = widget.product['image_url'];
+            if (thumb != null && thumb.isNotEmpty) _images = [thumb];
+          }
+          _isLoadingImages = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          final thumb = widget.product['image_url'];
+          if (thumb != null && thumb.isNotEmpty) _images = [thumb];
+          _isLoadingImages = false;
+        });
+      }
+    }
+  }
+
+  bool get _isLongDescription {
+    final desc = widget.product['description'] ?? "";
+    return desc.length > 120;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final product = widget.product;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -16,20 +88,44 @@ class BuyerProductDetailPage extends StatelessWidget {
           children: [
             Stack(
               children: [
-                Image.asset(
-                  'assets/images/ricecooker.png', 
-                  width: double.infinity,
+                SizedBox(
                   height: 380,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 380,
-                    color: Colors.grey.shade200,
-                    child: const Icon(
-                      Icons.broken_image,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  width: double.infinity,
+                  child: _isLoadingImages
+                      ? Container(
+                          color: Colors.grey.shade200,
+                          child: const Center(child: CircularProgressIndicator()),
+                        )
+                      : (_images.isNotEmpty)
+                          ? PageView.builder(
+                              itemCount: _images.length,
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _currentImageIndex = index;
+                                });
+                              },
+                              itemBuilder: (context, index) {
+                                return Image.network(
+                                  _images[index],
+                                  width: double.infinity,
+                                  height: 380,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    height: 380,
+                                    color: Colors.grey.shade200,
+                                    child: const Icon(
+                                      Icons.broken_image,
+                                      size: 50,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Colors.grey.shade200,
+                              child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                            ),
                 ),
                 Positioned(
                   top: MediaQuery.of(context).padding.top + 16,
@@ -51,28 +147,29 @@ class BuyerProductDetailPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                Positioned(
-                  bottom: 16,
-                  right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Text(
-                      "1/10",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF15243C),
+                if (_images.isNotEmpty)
+                  Positioned(
+                    bottom: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        "${_currentImageIndex + 1}/${_images.length}",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF15243C),
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
 
@@ -117,26 +214,46 @@ class BuyerProductDetailPage extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "John Doe",
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF15243C),
-                                    ),
-                                  ),
-                                  Text(
-                                    "Aktif 3 jam lalu",
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: const Color.fromARGB(255, 9, 9, 9),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
+                              child: FutureBuilder(
+                                future: Supabase.instance.client
+                                    .from('profiles')
+                                    .select('full_name')
+                                    .eq('id', product['seller_id'] ?? '')
+                                    .maybeSingle(),
+                                builder: (context, snapshot) {
+                                  String sellerName = "Memuat...";
+                                  if (snapshot.connectionState == ConnectionState.done) {
+                                    if (snapshot.hasData && snapshot.data != null) {
+                                      sellerName = (snapshot.data as Map)['full_name'] ?? 'Penjual Tidak Diketahui';
+                                    } else {
+                                      sellerName = 'Penjual Tidak Diketahui';
+                                    }
+                                  }
+
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        sellerName,
+                                        style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF15243C),
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const Text(
+                                        "Aktif baru saja",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Color.fromARGB(255, 9, 9, 9),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                             ),
                             ElevatedButton(
@@ -238,36 +355,48 @@ class BuyerProductDetailPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    "Hadirkan kemudahan memasak dalam satu sentuhan dengan Magic Com. Dilengkapi fitur serbaguna 3-in-1, penanak nasi ini tidak hanya memasak dengan sempurna, tetapi juga dapat mengukus dan menghan..",
-                    style: TextStyle(
+                  Text(
+                    (product['description'] != null && product['description']!.isNotEmpty)
+                        ? product['description']!
+                        : "Tidak ada deskripsi untuk produk ini.",
+                    style: const TextStyle(
                       fontSize: 13,
                       height: 1.5,
                       color: Color(0xFF334155),
                     ),
+                    maxLines: _isDescriptionExpanded ? null : (_isLongDescription ? 3 : null),
+                    overflow: _isDescriptionExpanded ? TextOverflow.visible : (_isLongDescription ? TextOverflow.ellipsis : TextOverflow.visible),
                   ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Text(
-                          "Lihat Selengkapnya",
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF334155),
-                          ),
+                  if (_isLongDescription) const SizedBox(height: 16),
+                  if (_isLongDescription)
+                    Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _isDescriptionExpanded = !_isDescriptionExpanded;
+                          });
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _isDescriptionExpanded ? "Tutup Selengkapnya" : "Lihat Selengkapnya",
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF334155),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              _isDescriptionExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                              size: 18,
+                              color: const Color(0xFF334155),
+                            ),
+                          ],
                         ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 18,
-                          color: Color(0xFF334155),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 30),
                 ],
               ),

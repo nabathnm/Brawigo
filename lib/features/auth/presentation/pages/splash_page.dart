@@ -9,7 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class SplashPage extends StatelessWidget{
- const SplashPage({super.key});
+   const SplashPage({super.key});
   
   @override 
   Widget build(BuildContext context){

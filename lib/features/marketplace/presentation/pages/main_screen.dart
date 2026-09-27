@@ -1,19 +1,22 @@
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/marketplace_buyer_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/marketplace_seller_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/add_product_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/order_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/buyer_order_history_page.dart';
 import 'package:brawigo/features/profile/presentation/pages/profile_page.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_bloc.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_state.dart';
 import 'package:brawigo/features/auth/presentation/pages/login_page.dart';
+import 'package:brawigo/features/chat/presentation/pages/chat_list_page.dart';
 
 class MainScreen extends StatefulWidget {
-  final String role; // 'buyer' atau 'seller'
+  final bool isSeller;
 
-  const MainScreen({super.key, required this.role});
+  const MainScreen({super.key, this.isSeller = false});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -27,34 +30,30 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    _isSeller = widget.role.toLowerCase().trim() == 'seller';
-    _pages = [
-      _isSeller ? const MarketPlaceSellerPage() : const MarketPlaceBuyerPage(),
-      const Scaffold(
-        backgroundColor: Color(0xFFEAF0F6),
-        body: Center(
-          child: Text(
-            "Halaman Pesan\n(Segera Hadir)",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF6A7A8A),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(), // Placeholder untuk tombol tengah (+)
-      const OrderPage(),
-      const ProfilePage(),
-    ];
+    _isSeller = widget.isSeller;
+    if (_isSeller) {
+      _pages = [
+        const MarketPlaceSellerPage(),
+        const ChatListPage(isSeller: true),
+        const SizedBox(), // Placeholder untuk tombol tengah (+)
+        const OrderPage(),
+        const ProfilePage(),
+      ];
+    } else {
+      _pages = [
+        const MarketplaceBuyerPage(hideBottomNav: true),
+        const ChatListPage(isSeller: false),
+        const BuyerOrderHistoryPage(),
+        const ProfilePage(),
+      ];
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        if (state is AuthInitial || state is AuthFailure) {
+        if (state is AuthInitial || state is AuthError) {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -70,9 +69,9 @@ class _MainScreenState extends State<MainScreen> {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xFFC8DAEF), // Stop 0%
-                Color(0xFFE6EDF8), // Stop 20%
-                Color(0xFFFAFAFA), // Stop 100%
+                Color(0xFFC8DAEF),
+                Color(0xFFE6EDF8),
+                Color(0xFFFAFAFA),
               ],
               stops: [0.0, 0.2, 1.0],
             ),
@@ -85,7 +84,7 @@ class _MainScreenState extends State<MainScreen> {
             color: const Color(0xFFFFFFFF),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF1E2D3D).withAlpha(18),
+                color: const Color(0xFF1E2D3D).withValues(alpha: 0.07),
                 blurRadius: 24,
                 offset: const Offset(0, -6),
               ),
@@ -93,63 +92,124 @@ class _MainScreenState extends State<MainScreen> {
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.only(top: 10, bottom: 30),
-              child: Row(
-                spacing: 8,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _buildNavItem(
-                    icon: Image.asset(
-                      _currentIndex == 0
-                          ? 'assets/images/navbar/beranda_active.png'
-                          : 'assets/images/navbar/beranda.png',
-                      width: 24,
-                      height: 24,
-                    ),
-                    label: 'Beranda',
-                    index: 0,
-                  ),
-                  _buildNavItem(
-                    icon: Image.asset(
-                      _currentIndex == 1
-                          ? 'assets/images/navbar/pesan_active.png'
-                          : 'assets/images/navbar/pesan.png',
-                      width: 24,
-                      height: 24,
-                    ),
-                    label: 'Pesan',
-                    index: 1,
-                  ),
-                  _buildAddButton(context),
-                  _buildNavItem(
-                    icon: Image.asset(
-                      _currentIndex == 3
-                          ? 'assets/images/navbar/order_active.png'
-                          : 'assets/images/navbar/order.png',
-                      width: 24,
-                      height: 24,
-                    ),
-                    label: 'Order',
-                    index: 3,
-                  ),
-                  _buildNavItem(
-                    icon: Image.asset(
-                      _currentIndex == 4
-                          ? 'assets/images/navbar/profil_active.png'
-                          : 'assets/images/navbar/profil.png',
-                      width: 24,
-                      height: 24,
-                    ),
-                    label: 'Profil',
-                    index: 4,
-                  ),
-                ],
+              padding: const EdgeInsets.only(
+                top: 10,
+                bottom: 30,
+                left: 16,
+                right: 16,
               ),
+              child: _isSeller ? _buildSellerNavRow() : _buildBuyerNavRow(),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBuyerNavRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _buildNavItem(
+          icon: Image.asset(
+            _currentIndex == 0
+                ? 'assets/images/navbar/beranda_active.png'
+                : 'assets/images/navbar/beranda.png',
+            width: 24,
+            height: 24,
+          ),
+          label: 'Beranda',
+          index: 0,
+        ),
+        _buildNavItem(
+          icon: Image.asset(
+            _currentIndex == 1
+                ? 'assets/images/navbar/pesan_active.png'
+                : 'assets/images/navbar/pesan.png',
+            width: 24,
+            height: 24,
+          ),
+          label: 'Pesan',
+          index: 1,
+        ),
+        _buildNavItem(
+          icon: Image.asset(
+            _currentIndex == 2
+                ? 'assets/images/navbar/order_active.png'
+                : 'assets/images/navbar/order.png',
+            width: 24,
+            height: 24,
+          ),
+          label: 'Order',
+          index: 2,
+        ),
+        _buildNavItem(
+          icon: Image.asset(
+            _currentIndex == 3
+                ? 'assets/images/navbar/profil_active.png'
+                : 'assets/images/navbar/profil.png',
+            width: 24,
+            height: 24,
+          ),
+          label: 'Profil',
+          index: 3,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSellerNavRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _buildNavItem(
+          icon: Image.asset(
+            _currentIndex == 0
+                ? 'assets/images/navbar/beranda_active.png'
+                : 'assets/images/navbar/beranda.png',
+            width: 24,
+            height: 24,
+          ),
+          label: 'Beranda',
+          index: 0,
+        ),
+        _buildNavItem(
+          icon: Image.asset(
+            _currentIndex == 1
+                ? 'assets/images/navbar/pesan_active.png'
+                : 'assets/images/navbar/pesan.png',
+            width: 24,
+            height: 24,
+          ),
+          label: 'Pesan',
+          index: 1,
+        ),
+        _buildAddButton(context),
+        _buildNavItem(
+          icon: Image.asset(
+            _currentIndex == 3
+                ? 'assets/images/navbar/order_active.png'
+                : 'assets/images/navbar/order.png',
+            width: 24,
+            height: 24,
+          ),
+          label: 'Order',
+          index: 3,
+        ),
+        _buildNavItem(
+          icon: Image.asset(
+            _currentIndex == 4
+                ? 'assets/images/navbar/profil_active.png'
+                : 'assets/images/navbar/profil.png',
+            width: 24,
+            height: 24,
+          ),
+          label: 'Profil',
+          index: 4,
+        ),
+      ],
     );
   }
 
@@ -160,7 +220,7 @@ class _MainScreenState extends State<MainScreen> {
   }) {
     final isSelected = _currentIndex == index;
     final color = isSelected
-        ? BrawigoColors.primary500
+        ? BrawigoColors.blue500
         : BrawigoColors.blueLightActive;
 
     return InkWell(
@@ -197,24 +257,21 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildAddButton(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        if (_isSeller) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddProductPage()),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Hanya akun Seller yang dapat menambah produk."),
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BlocProvider.value(
+              value: context.read<MarketplaceBloc>(),
+              child: const AddProductPage(),
             ),
-          );
-        }
+          ),
+        );
       },
       child: Container(
         width: 52,
         height: 52,
-        decoration: BoxDecoration(
-          color: BrawigoColors.primary500,
+        decoration: const BoxDecoration(
+          color: BrawigoColors.blue500,
           shape: BoxShape.circle,
         ),
         child: Image.asset("assets/images/navbar/tambah_produk.png"),

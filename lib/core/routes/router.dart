@@ -45,14 +45,14 @@ final GoRouter appRouter = GoRouter(
       path: '/home', 
       builder: (context, state) => BlocProvider(
         create: (context) => MarketplaceBloc()..add(LoadProducts()),
-        child: const MarketplaceBuyerPage(),
+        child: const MainScreen(isSeller: false),
       )
     ),
     GoRoute(
       path: '/buyer',
       builder: (context, state) => BlocProvider(
         create: (context) => MarketplaceBloc()..add(LoadProducts()),
-        child: const MarketplaceBuyerPage(),
+        child: const MainScreen(isSeller: false),
       )
     ),
     GoRoute(

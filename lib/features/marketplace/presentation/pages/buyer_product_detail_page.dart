@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart'; 
+import 'package:brawigo/features/chat/presentation/pages/chat_room_page.dart';
 
 class BuyerProductDetailPage extends StatefulWidget {
   final Map<String, String> product;
@@ -30,12 +31,96 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
     if (productId != null && productId.isNotEmpty) {
       final prefs = await SharedPreferences.getInstance();
       List<String> viewed = prefs.getStringList('recently_viewed') ?? [];
-      viewed.remove(productId); // Remove if exists
-      viewed.add(productId); // Add to end
+      viewed.remove(productId);
+      viewed.add(productId);
       if (viewed.length > 10) {
-        viewed.removeAt(0); // Keep max 10
+        viewed.removeAt(0);
       }
       await prefs.setStringList('recently_viewed', viewed);
+    }
+  }
+
+  Future<void> _openChat() async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    final product = widget.product;
+    final sellerId = product['seller_id'] ?? '';
+    final productId = product['id'] ?? '';
+
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Silakan login terlebih dahulu untuk memulai chat.')),
+      );
+      return;
+    }
+
+    if (sellerId.isEmpty || productId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Informasi produk/penjual tidak lengkap.')),
+      );
+      return;
+    }
+
+    if (currentUser.id == sellerId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ini adalah produk Anda sendiri.')),
+      );
+      return;
+    }
+
+    try {
+      final existing = await Supabase.instance.client
+          .from('conversations')
+          .select('id')
+          .eq('buyer_id', currentUser.id)
+          .eq('seller_id', sellerId)
+          .eq('product_id', productId)
+          .maybeSingle();
+
+      String conversationId;
+      bool isNew = false;
+
+      if (existing != null) {
+        conversationId = existing['id'];
+      } else {
+        final created = await Supabase.instance.client
+            .from('conversations')
+            .insert({
+              'buyer_id': currentUser.id,
+              'seller_id': sellerId,
+              'product_id': productId,
+            })
+            .select('id')
+            .single();
+        conversationId = created['id'];
+        isNew = true;
+      }
+
+      final sellerProfile = await Supabase.instance.client
+          .from('profiles')
+          .select('full_name')
+          .eq('id', sellerId)
+          .maybeSingle();
+      final sellerName = sellerProfile?['full_name'] ?? 'Penjual';
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatRoomPage(
+            conversationId: conversationId,
+            otherUserName: sellerName,
+            otherUserId: sellerId,
+            productData: widget.product,
+            sendProductMention: isNew,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal membuka chat: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -435,7 +520,7 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                       color: Color(0xFF2B5F9E),
                       size: 22,
                     ),
-                    onPressed: () {},
+                    onPressed: _openChat,
                   ),
                 ),
                 const SizedBox(width: 16),

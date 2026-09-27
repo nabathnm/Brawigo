@@ -9,9 +9,13 @@ import '../bloc/marketplace_event.dart';
 import '../bloc/marketplace_state.dart';
 import 'buyer_product_detail_page.dart';
 import 'buyer_search_page.dart';
+import 'package:brawigo/features/chat/presentation/pages/chat_list_page.dart';
+import 'order_page.dart';
+import 'package:brawigo/features/profile/presentation/pages/profile_page.dart';
 
 class MarketplaceBuyerPage extends StatefulWidget {
-  const MarketplaceBuyerPage({super.key});
+  final bool hideBottomNav;
+  const MarketplaceBuyerPage({super.key, this.hideBottomNav = false});
 
   @override
   State<MarketplaceBuyerPage> createState() => _MarketplaceBuyerPageState();
@@ -90,7 +94,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
           },
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
+      bottomNavigationBar: widget.hideBottomNav ? null : _buildBottomNavBar(),
     );
   }
 
@@ -506,21 +510,40 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                 icon: Icons.home_rounded,
                 label: 'Beranda',
                 isActive: true,
+                onTap: () {},
               ),
               _buildNavItem(
                 icon: Icons.chat_bubble_rounded,
                 label: 'Pesan',
                 isActive: false,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ChatListPage()),
+                  );
+                },
               ),
               _buildNavItem(
                 icon: Icons.shopping_cart_rounded,
                 label: 'Order',
                 isActive: false,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const OrderPage()),
+                  );
+                },
               ),
               _buildNavItem(
                 icon: Icons.account_circle_rounded,
                 label: 'Profil',
                 isActive: false,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfilePage()),
+                  );
+                },
               ),
             ],
           ),
@@ -533,12 +556,13 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
     required IconData icon,
     required String label,
     required bool isActive,
+    VoidCallback? onTap,
   }) {
     final Color color = isActive
         ? BrawigoColors.blue600
         : const Color(0xFFB0BAC3); 
     return InkWell(
-      onTap: () {},
+      onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

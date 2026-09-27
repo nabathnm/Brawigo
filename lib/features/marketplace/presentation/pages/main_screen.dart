@@ -11,6 +11,8 @@ import 'package:brawigo/features/auth/presentation/blocs/auth_bloc.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_state.dart';
 import 'package:brawigo/features/auth/presentation/pages/login_page.dart';
 
+import 'package:brawigo/features/chat/presentation/pages/chat_list_page.dart';
+
 class MainScreen extends StatefulWidget {
   // Tetap menggunakan properti boolean milikmu agar tidak error di GoRouter
   final bool isSeller;
@@ -31,21 +33,8 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _isSeller = widget.isSeller; // Mengambil nilai dari logikamu
     _pages = [
-      _isSeller ? const MarketPlaceSellerPage() : const MarketplaceBuyerPage(),
-      const Scaffold(
-        backgroundColor: Color(0xFFFAFAFA),
-        body: Center(
-          child: Text(
-            "Halaman Pesan\n(Segera Hadir)",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF6A7A8A),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
+      _isSeller ? const MarketPlaceSellerPage() : const MarketplaceBuyerPage(hideBottomNav: true),
+      const ChatListPage(),
       const SizedBox(), // Placeholder untuk tombol tengah (+)
       const OrderPage(), // Menggunakan OrderPage baru dari temanmu
       const ProfilePage(),

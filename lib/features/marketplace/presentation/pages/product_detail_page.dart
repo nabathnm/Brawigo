@@ -25,6 +25,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   bool _isLoadingImages = true;
   int _currentImageIndex = 0;
   bool _isDescriptionExpanded = false;
+  final PageController _pageController = PageController();
 
   String _formatCurrency(dynamic amount) {
     final int value = (amount as num?)?.toInt() ?? 0;
@@ -66,6 +67,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   void initState() {
     super.initState();
     _fetchImages();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchImages() async {
@@ -156,48 +163,59 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Area Gambar + Overlay Tombol & Badge
-                    SizedBox(
-                      height: 360,
-                      width: double.infinity,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: _isLoadingImages
-                                ? const Center(
-                                    child: CircularProgressIndicator(),
-                                  )
-                                : _images.isNotEmpty
-                                ? PageView.builder(
-                                    itemCount: _images.length,
-                                    onPageChanged: (index) {
-                                      setState(() {
-                                        _currentImageIndex = index;
-                                      });
-                                    },
-                                    itemBuilder: (context, index) {
-                                      return Image.network(
-                                        _images[index],
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
-                                          color: Colors.grey[200],
-                                          child: const Icon(
-                                            Icons.broken_image,
-                                            size: 80,
-                                            color: Colors.grey,
+                    // NotificationListener menghentikan ScrollNotification dari PageView
+                    // agar tidak diteruskan ke SingleChildScrollView (yang vertikal),
+                    // sehingga gesture horizontal milik PageView tidak tercuri.
+                    NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        // Blokir notifikasi scroll dari PageView agar tidak
+                        // diterima oleh SingleChildScrollView di atasnya.
+                        return notification.depth == 0;
+                      },
+                      child: SizedBox(
+                        height: 360,
+                        width: double.infinity,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: _isLoadingImages
+                                  ? const Center(
+                                      child: CircularProgressIndicator(),
+                                    )
+                                  : _images.isNotEmpty
+                                  ? PageView.builder(
+                                      controller: _pageController,
+                                      physics: const PageScrollPhysics(),
+                                      itemCount: _images.length,
+                                      onPageChanged: (index) {
+                                        setState(() {
+                                          _currentImageIndex = index;
+                                        });
+                                      },
+                                      itemBuilder: (context, index) {
+                                        return Image.network(
+                                          _images[index],
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Container(
+                                            color: Colors.grey[200],
+                                            child: const Icon(
+                                              Icons.broken_image,
+                                              size: 80,
+                                              color: Colors.grey,
+                                            ),
                                           ),
-                                        ),
-                                      );
-                                    },
-                                  )
-                                : Container(
-                                    color: Colors.grey[200],
-                                    child: const Icon(
-                                      Icons.image,
-                                      size: 100,
-                                      color: Colors.grey,
+                                        );
+                                      },
+                                    )
+                                  : Container(
+                                      color: Colors.grey[200],
+                                      child: const Icon(
+                                        Icons.image,
+                                        size: 100,
+                                        color: Colors.grey,
+                                      ),
                                     ),
-                                  ),
-                          ),
+                            ),
 
                           // Top Buttons Overlay (Back, Edit, Delete)
                           Positioned(
@@ -265,9 +283,12 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                               context,
                                               MaterialPageRoute(
                                                 builder: (context) =>
-                                                    UpdateProductPage(
-                                                      product: product,
-                                                    ),
+                                                    BlocProvider.value(
+                                                  value: context.read<MarketplaceBloc>(),
+                                                  child: UpdateProductPage(
+                                                    product: product,
+                                                  ),
+                                                ),
                                               ),
                                             );
                                           },
@@ -306,6 +327,68 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             ),
                           ),
 
+                          // Panah Kiri Navigasi Gambar
+                          if (_images.length > 1 && _currentImageIndex > 0)
+                            Positioned(
+                              left: 12,
+                              top: 0,
+                              bottom: 0,
+                              child: Center(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    _pageController.previousPage(
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.easeInOut,
+                                    );
+                                  },
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.4),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.chevron_left_rounded,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          // Panah Kanan Navigasi Gambar
+                          if (_images.length > 1 && _currentImageIndex < _images.length - 1)
+                            Positioned(
+                              right: 12,
+                              top: 0,
+                              bottom: 0,
+                              child: Center(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    _pageController.nextPage(
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.easeInOut,
+                                    );
+                                  },
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.4),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.chevron_right_rounded,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
                           // Badge Indikator Halaman Gambar
                           Positioned(
                             bottom: 14,
@@ -339,6 +422,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                         ],
                       ),
                     ),
+                  ),
 
                     // Area Judul, Kategori & Harga
                     Padding(

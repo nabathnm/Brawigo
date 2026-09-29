@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart'; 
 import 'package:brawigo/features/chat/presentation/pages/chat_room_page.dart';
+import 'checkout_page.dart';
 
 class BuyerProductDetailPage extends StatefulWidget {
   final Map<String, String> product;
@@ -40,6 +41,14 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
     }
   }
 
+  final PageController _pageController = PageController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _openChat() async {
     final currentUser = Supabase.instance.client.auth.currentUser;
     final product = widget.product;
@@ -68,19 +77,20 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
     }
 
     try {
-      final existing = await Supabase.instance.client
+      final existingRes = await Supabase.instance.client
           .from('conversations')
           .select('id')
           .eq('buyer_id', currentUser.id)
           .eq('seller_id', sellerId)
           .eq('product_id', productId)
-          .maybeSingle();
+          .limit(1);
 
+      final List existingList = existingRes as List;
       String conversationId;
       bool isNew = false;
 
-      if (existing != null) {
-        conversationId = existing['id'];
+      if (existingList.isNotEmpty) {
+        conversationId = existingList.first['id'];
       } else {
         final created = await Supabase.instance.client
             .from('conversations')
@@ -171,91 +181,158 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                SizedBox(
-                  height: 380,
-                  width: double.infinity,
-                  child: _isLoadingImages
-                      ? Container(
-                          color: Colors.grey.shade200,
-                          child: const Center(child: CircularProgressIndicator()),
-                        )
-                      : (_images.isNotEmpty)
-                          ? PageView.builder(
-                              itemCount: _images.length,
-                              onPageChanged: (index) {
-                                setState(() {
-                                  _currentImageIndex = index;
-                                });
-                              },
-                              itemBuilder: (context, index) {
-                                return Image.network(
-                                  _images[index],
-                                  width: double.infinity,
-                                  height: 380,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
+            NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                return notification.depth == 0;
+              },
+              child: Stack(
+                children: [
+                  SizedBox(
+                    height: 380,
+                    width: double.infinity,
+                    child: _isLoadingImages
+                        ? Container(
+                            color: Colors.grey.shade200,
+                            child: const Center(child: CircularProgressIndicator()),
+                          )
+                        : (_images.isNotEmpty)
+                            ? PageView.builder(
+                                controller: _pageController,
+                                physics: const PageScrollPhysics(),
+                                itemCount: _images.length,
+                                onPageChanged: (index) {
+                                  setState(() {
+                                    _currentImageIndex = index;
+                                  });
+                                },
+                                itemBuilder: (context, index) {
+                                  return Image.network(
+                                    _images[index],
+                                    width: double.infinity,
                                     height: 380,
-                                    color: Colors.grey.shade200,
-                                    child: const Icon(
-                                      Icons.broken_image,
-                                      size: 50,
-                                      color: Colors.grey,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => Container(
+                                      height: 380,
+                                      color: Colors.grey.shade200,
+                                      child: const Icon(
+                                        Icons.broken_image,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                            )
-                          : Container(
-                              color: Colors.grey.shade200,
-                              child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-                            ),
-                ),
-                Positioned(
-                  top: MediaQuery.of(context).padding.top + 16,
-                  left: 16,
-                  child: InkWell(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 20,
-                        color: Colors.black87,
-                      ),
-                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                              ),
                   ),
-                ),
-                if (_images.isNotEmpty)
                   Positioned(
-                    bottom: 16,
-                    right: 16,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        "${_currentImageIndex + 1}/${_images.length}",
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF15243C),
+                    top: MediaQuery.of(context).padding.top + 16,
+                    left: 16,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 20,
+                          color: Colors.black87,
                         ),
                       ),
                     ),
                   ),
-              ],
+                  // Panah Kiri Navigasi Gambar
+                  if (_images.length > 1 && _currentImageIndex > 0)
+                    Positioned(
+                      left: 12,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            _pageController.previousPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.4),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.chevron_left_rounded,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Panah Kanan Navigasi Gambar
+                  if (_images.length > 1 && _currentImageIndex < _images.length - 1)
+                    Positioned(
+                      right: 12,
+                      top: 0,
+                      bottom: 0,
+                      child: Center(
+                        child: GestureDetector(
+                          onTap: () {
+                            _pageController.nextPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.4),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (_images.isNotEmpty)
+                    Positioned(
+                      bottom: 16,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          "${_currentImageIndex + 1}/${_images.length}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF15243C),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
 
             Padding(
@@ -293,47 +370,77 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                       children: [
                         Row(
                           children: [
-                            const CircleAvatar(
-                              radius: 20,
-                              backgroundColor: BrawigoColors.blue400,
-                            ),
-                            const SizedBox(width: 12),
                             Expanded(
                               child: FutureBuilder(
                                 future: Supabase.instance.client
                                     .from('profiles')
-                                    .select('full_name')
+                                    .select('full_name, username, profile_photo_url')
                                     .eq('id', product['seller_id'] ?? '')
                                     .maybeSingle(),
                                 builder: (context, snapshot) {
                                   String sellerName = "Memuat...";
+                                  String? photoUrl;
                                   if (snapshot.connectionState == ConnectionState.done) {
                                     if (snapshot.hasData && snapshot.data != null) {
-                                      sellerName = (snapshot.data as Map)['full_name'] ?? 'Penjual Tidak Diketahui';
+                                      final p = snapshot.data as Map;
+                                      final username = p['username']?.toString().trim();
+                                      final fullName = p['full_name']?.toString().trim();
+                                      photoUrl = p['profile_photo_url']?.toString().trim();
+
+                                      if (username != null && username.isNotEmpty && username != '-') {
+                                        sellerName = username;
+                                      } else if (fullName != null && fullName.isNotEmpty) {
+                                        sellerName = fullName;
+                                      } else {
+                                        sellerName = 'Penjual';
+                                      }
                                     } else {
                                       sellerName = 'Penjual Tidak Diketahui';
                                     }
                                   }
 
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                  return Row(
                                     children: [
-                                      Text(
-                                        sellerName,
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF15243C),
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
+                                      CircleAvatar(
+                                        radius: 20,
+                                        backgroundColor: const Color(0xFF4A7EBB),
+                                        backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                                            ? NetworkImage(photoUrl)
+                                            : null,
+                                        child: (photoUrl == null || photoUrl.isEmpty)
+                                            ? Text(
+                                                sellerName.isNotEmpty ? sellerName[0].toUpperCase() : 'P',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              )
+                                            : null,
                                       ),
-                                      const Text(
-                                        "Aktif baru saja",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Color.fromARGB(255, 9, 9, 9),
-                                          fontWeight: FontWeight.w500,
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              sellerName,
+                                              style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF15243C),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const Text(
+                                              "Aktif baru saja",
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xFF64748B),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ],
@@ -526,7 +633,14 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CheckoutPage(product: widget.product),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4A7EBB),
                       elevation: 0,

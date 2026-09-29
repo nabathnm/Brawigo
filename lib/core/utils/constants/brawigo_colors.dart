@@ -28,6 +28,19 @@ class BrawigoColors {
   static const Color blue800 = Color(0xFF21426B);
   static const Color blue900 = Color(0xFF20395A);
   static const Color blue950 = Color(0xFF15243C);
+
+  // PRIMARY ALIASES
+  static const Color primary50 = blue50;
+  static const Color primary100 = blue100;
+  static const Color primary200 = blue200;
+  static const Color primary300 = blue300;
+  static const Color primary400 = blue400;
+  static const Color primary500 = blue500;
+  static const Color primary600 = blue600;
+  static const Color primary700 = blue700;
+  static const Color primary800 = blue800;
+  static const Color primary900 = blue900;
+  static const Color primary950 = blue950;
   // GREEN
   static const Color greenLight = Color(0xFFE8F7EC);
   static const Color greenLightHover = Color(0xFFDDF3E2);

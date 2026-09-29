@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/product_detail_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/update_product_page.dart';
+
 
 class SellerProductCard extends StatelessWidget {
   final Map<String, dynamic> product;
@@ -163,7 +166,10 @@ class SellerProductCard extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => UpdateProductPage(product: product),
+                          builder: (_) => BlocProvider.value(
+                            value: context.read<MarketplaceBloc>(),
+                            child: UpdateProductPage(product: product),
+                          ),
                         ),
                       );
                     },

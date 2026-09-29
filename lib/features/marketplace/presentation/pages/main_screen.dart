@@ -15,21 +15,27 @@ import 'package:brawigo/features/chat/presentation/pages/chat_list_page.dart';
 
 class MainScreen extends StatefulWidget {
   final bool isSeller;
+  final int initialIndex;
 
-  const MainScreen({super.key, this.isSeller = false});
+  const MainScreen({
+    super.key,
+    this.isSeller = false,
+    this.initialIndex = 0,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   late final List<Widget> _pages;
   late final bool _isSeller;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _isSeller = widget.isSeller;
     if (_isSeller) {
       _pages = [

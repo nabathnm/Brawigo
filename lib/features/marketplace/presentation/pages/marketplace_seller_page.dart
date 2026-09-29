@@ -3,6 +3,7 @@ import 'package:brawigo/features/marketplace/presentation/pages/widgets/header.d
 import 'package:brawigo/features/marketplace/presentation/pages/widgets/seller_product_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/product_detail_page.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
@@ -91,7 +92,9 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Header(),
+              child: Header(
+                onRoleSwitch: () => context.go('/buyer'),
+              ),
             ),
             SizedBox(height: 16),
             Padding(
@@ -491,7 +494,10 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => UpdateProductPage(product: product),
+                          builder: (_) => BlocProvider.value(
+                            value: context.read<MarketplaceBloc>(),
+                            child: UpdateProductPage(product: product),
+                          ),
                         ),
                       );
                     },

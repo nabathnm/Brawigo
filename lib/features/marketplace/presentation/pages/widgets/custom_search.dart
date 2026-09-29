@@ -41,6 +41,11 @@ class CustomSearch extends StatelessWidget {
                     "assets/images/icon/find.png",
                     width: 20,
                     height: 20,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.search_rounded,
+                      color: Color(0xFF8C9AA8),
+                      size: 20,
+                    ),
                   ),
                 ),
                 border: InputBorder.none,
@@ -71,6 +76,11 @@ class CustomSearch extends StatelessWidget {
                 "assets/images/icon/filter.png",
                 width: 22,
                 height: 22,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.tune_rounded,
+                  color: Color(0xFF15243C),
+                  size: 22,
+                ),
               ),
             ),
           ),

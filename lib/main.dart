@@ -2,15 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import '../../../../core/routes/router.dart';
 import './features/auth/presentation/blocs/auth_bloc.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
-void main() async {
 
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
+  await initializeDateFormatting('id_ID', null);
 
   final supabaseUrl = dotenv.env['SUPABASE_API_URL']!;
   final supabaseAnonKey = dotenv.env['SUPABASE_API_KEY']!;

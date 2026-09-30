@@ -40,6 +40,8 @@ flutter:
     - assets/images/
     - assets/images/navbar/
     - assets/icons/
+    - assets/icons/common/
+    - assets/icons/marketplace/
 
 icons_launcher:
   image_path: "assets/icons/icon_launcher.png"

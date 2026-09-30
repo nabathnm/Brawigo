@@ -48,7 +48,9 @@ class _MainScreenState extends State<MainScreen> {
       ),
       const SizedBox(), // Placeholder untuk tombol tengah (+)
       BlocProvider(
-        create: (context) => OrderBloc()..add(_isSeller ? LoadSellerOrders() : LoadBuyerOrders()),
+        create: (context) =>
+            OrderBloc()
+              ..add(_isSeller ? LoadSellerOrders() : LoadBuyerOrders()),
         child: OrderListPage(isSeller: _isSeller),
       ),
       const ProfilePage(),

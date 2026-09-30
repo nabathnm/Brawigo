@@ -6,8 +6,8 @@ import '../../../../core/routes/router.dart';
 import './features/auth/presentation/blocs/auth_bloc.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
-void main() async {
 
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: ".env");
@@ -25,16 +25,30 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(providers: [BlocProvider<AuthBloc>(create: (context) => AuthBloc(supabaseClient: Supabase.instance.client))],
-     child: MaterialApp.router(
-      title: 'Brawigo',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: BrawigoColors.blue400,
-        scaffoldBackgroundColor: BrawigoColors.blue50,
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(Theme.of(context).textTheme),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthBloc>(
+          create: (context) =>
+              AuthBloc(supabaseClient: Supabase.instance.client),
+        ),
+      ],
+      child: MaterialApp.router(
+        title: 'Brawigo',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primaryColor: BrawigoColors.blue400,
+          scaffoldBackgroundColor: BrawigoColors.blue50,
+          textTheme: GoogleFonts.plusJakartaSansTextTheme(
+            Theme.of(context).textTheme,
+          ),
+          canvasColor: Colors.white,
+          colorScheme: const ColorScheme.light(
+            surface: Colors.white,
+            background: Colors.white,
+          ),
+        ),
+        routerConfig: appRouter,
       ),
-      routerConfig: appRouter,
-     ) );
+    );
   }
 }

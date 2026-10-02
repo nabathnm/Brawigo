@@ -6,16 +6,9 @@ class PaymentMethod {
 }
 
 const paymentMethods = [
+  PaymentMethod(title: 'QRIS', description: 'Bayar melalui QRIS Penjual.'),
   PaymentMethod(
-    title: 'Cash on Delivery (COD)',
-    description: 'Bertemu dengan penjual di sekitar area UB.',
-  ),
-  PaymentMethod(
-    title: 'Self Pick-Up',
-    description: 'Ambil barang langsung dari penjual.',
-  ),
-  PaymentMethod(
-    title: 'Kurir Instan',
-    description: 'Barang dikirim menggunakan kurir instan.',
+    title: 'Transfer Bank',
+    description: 'Transfer ke rekening penjual.',
   ),
 ];

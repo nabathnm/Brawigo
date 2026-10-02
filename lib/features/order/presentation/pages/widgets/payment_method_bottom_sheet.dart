@@ -1,17 +1,18 @@
+import 'package:brawigo/features/order/presentation/pages/models/payment_method.dart';
 import 'package:flutter/material.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
-import '../models/pickup_method.dart';
+import '../models/payment_method.dart';
 
-class PickupMethodBottomSheet extends StatefulWidget {
-  const PickupMethodBottomSheet({super.key});
+class PaymentMethodBottomSheet extends StatefulWidget {
+  const PaymentMethodBottomSheet({super.key});
 
   @override
-  State<PickupMethodBottomSheet> createState() =>
-      _PickupMethodBottomSheetState();
+  State<PaymentMethodBottomSheet> createState() =>
+      _PaymentMethodBottomSheetState();
 }
 
-class _PickupMethodBottomSheetState extends State<PickupMethodBottomSheet> {
-  PickupMethod? selectedMethod;
+class _PaymentMethodBottomSheetState extends State<PaymentMethodBottomSheet> {
+  PaymentMethod? paymentMethod;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +23,7 @@ class _PickupMethodBottomSheetState extends State<PickupMethodBottomSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Pilih Metode Pembayaran',
+            'Pilih Metode Pengambilan',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -32,15 +33,15 @@ class _PickupMethodBottomSheetState extends State<PickupMethodBottomSheet> {
 
           const SizedBox(height: 12),
 
-          ...pickupMethods.map(
+          ...paymentMethods.map(
             (method) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: _MethodButton(
                 method: method,
-                isSelected: selectedMethod == method,
+                isSelected: paymentMethod == method,
                 onTap: () {
                   setState(() {
-                    selectedMethod = method;
+                    paymentMethod = method;
                   });
                 },
               ),
@@ -54,10 +55,10 @@ class _PickupMethodBottomSheetState extends State<PickupMethodBottomSheet> {
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: selectedMethod == null
+              onPressed: paymentMethod == null
                   ? null
                   : () {
-                      Navigator.pop(context, selectedMethod);
+                      Navigator.pop(context, paymentMethod);
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: BrawigoColors.blue800,
@@ -80,7 +81,7 @@ class _PickupMethodBottomSheetState extends State<PickupMethodBottomSheet> {
 }
 
 class _MethodButton extends StatelessWidget {
-  final PickupMethod method;
+  final PaymentMethod method;
   final bool isSelected;
   final VoidCallback onTap;
 

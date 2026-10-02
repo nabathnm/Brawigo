@@ -31,7 +31,13 @@ class CreateOrder extends OrderEvent {
   });
 
   @override
-  List<Object?> get props => [productId, quantity, paymentMethod, meetupLocation, meetupTime];
+  List<Object?> get props => [
+    productId,
+    quantity,
+    paymentMethod,
+    meetupLocation,
+    meetupTime,
+  ];
 }
 
 class LoadBuyerOrders extends OrderEvent {}

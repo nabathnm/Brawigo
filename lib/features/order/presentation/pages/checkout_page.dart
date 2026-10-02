@@ -4,6 +4,7 @@ import 'package:brawigo/features/order/presentation/pages/widgets/checkout_butto
 import 'package:brawigo/features/order/presentation/pages/widgets/checkout_product_card.dart';
 import 'package:brawigo/features/order/presentation/pages/widgets/note_input.dart';
 import 'package:brawigo/features/order/presentation/pages/widgets/order_summary.dart';
+import 'package:brawigo/features/order/presentation/pages/widgets/payment_method_bottom_sheet.dart';
 import 'package:brawigo/features/order/presentation/pages/widgets/payment_method_selector.dart';
 import 'package:brawigo/features/order/presentation/pages/widgets/pickup_method_bottom_sheet.dart';
 import 'package:brawigo/features/order/presentation/pages/widgets/pickup_method_selector.dart';
@@ -34,12 +35,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _formKey = GlobalKey<FormState>();
 
   final _locationController = TextEditingController();
+  final _paymentController = TextEditingController();
   final _timeController = TextEditingController();
 
-  String _paymentMethod = 'cod';
   final int _quantity = 1;
 
-  PickupMethod? _selectedMethod;
+  PickupMethod? _deliverMethod;
+  PaymentMethod? _paymentMethod;
 
   @override
   void dispose() {
@@ -60,7 +62,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
     if (result != null) {
       setState(() {
-        _selectedMethod = result;
+        _deliverMethod = result;
       });
     }
   }
@@ -72,12 +74,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => const PickupMethodBottomSheet(),
+      builder: (_) => const PaymentMethodBottomSheet(),
     );
 
     if (result != null) {
       setState(() {
-        _paymentMethod = result.toString();
+        _paymentMethod = result;
       });
     }
   }
@@ -91,7 +93,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       CreateOrder(
         productId: widget.productId,
         quantity: _quantity,
-        paymentMethod: _paymentMethod,
+        paymentMethod: _paymentController.text,
         meetupLocation: _locationController.text,
         meetupTime: _timeController.text,
       ),
@@ -122,16 +124,19 @@ class _CheckoutPageState extends State<CheckoutPage> {
         backgroundColor: BrawigoColors.blue100,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
-          leading: Image.asset("./assets/icons/common/arrow_back.png"),
+          leading: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Image.asset("./assets/icons/common/arrow_back.png"),
+          ),
           title: Column(
-            crossAxisAlignment: .start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 "Checkout",
                 style: TextStyle(
                   fontSize: 20,
                   color: BrawigoColors.blue800,
-                  fontWeight: .w600,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
@@ -157,14 +162,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 const SizedBox(height: 12),
 
                 PickupMethodSelector(
-                  selectedMethod: _selectedMethod,
+                  selectedMethod: _deliverMethod,
                   onTap: _showMethodPicker,
                 ),
 
                 const SizedBox(height: 12),
 
                 PaymentMethodSelector(
-                  selectedMethod: _selectedMethod,
+                  selectedMethod: _paymentMethod,
                   onTap: _showMethodPayment,
                 ),
 
@@ -181,104 +186,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
             ),
           ),
         ),
-        bottomNavigationBar: CheckoutButton(
-          onSubmit: () {
-            if (_formKey.currentState!.validate()) {
-              context.read<OrderBloc>().add(
-                CreateOrder(
-                  productId: widget.productId,
-                  quantity: _quantity,
-                  paymentMethod: _paymentMethod,
-                  meetupLocation: _locationController.text,
-                  meetupTime: _timeController.text,
-                ),
-              );
-            }
-          },
-        ),
+        bottomNavigationBar: CheckoutButton(onSubmit: _createOrder),
       ),
-    );
-  }
-
-  Widget _buildMeetupSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Informasi Meetup',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-
-        const SizedBox(height: 12),
-
-        TextFormField(
-          controller: _locationController,
-          decoration: const InputDecoration(
-            labelText: 'Lokasi Meetup (e.g., Gedung Sasana Samana)',
-            border: OutlineInputBorder(),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Lokasi wajib diisi';
-            }
-
-            return null;
-          },
-        ),
-
-        const SizedBox(height: 16),
-
-        TextFormField(
-          controller: _timeController,
-          decoration: const InputDecoration(
-            labelText: 'Waktu Meetup (e.g., Besok Pukul 15:00 WIB)',
-            border: OutlineInputBorder(),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Waktu wajib diisi';
-            }
-
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPaymentSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Metode Pembayaran',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-
-        const SizedBox(height: 12),
-
-        DropdownButtonFormField<String>(
-          initialValue: _paymentMethod,
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-          items: const [
-            DropdownMenuItem(
-              value: 'cod',
-              child: Text('COD (Bayar saat Meetup)'),
-            ),
-            DropdownMenuItem(
-              value: 'qris',
-              child: Text('QRIS (Transfer / Unggah Bukti)'),
-            ),
-          ],
-          onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                _paymentMethod = value;
-              });
-            }
-          },
-        ),
-      ],
     );
   }
 }

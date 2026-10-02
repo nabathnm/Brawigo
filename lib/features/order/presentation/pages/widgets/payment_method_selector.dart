@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
-import '../models/pickup_method.dart';
+import '../models/payment_method.dart';
 
 class PaymentMethodSelector extends StatelessWidget {
-  final PickupMethod? selectedMethod;
+  final PaymentMethod? selectedMethod;
   final VoidCallback onTap;
 
   const PaymentMethodSelector({
@@ -48,7 +48,7 @@ class PaymentMethodSelector extends StatelessWidget {
                     : Colors.white,
                 border: Border.all(
                   color: selectedMethod != null
-                      ? const Color(0xff20395A)
+                      ? const Color(0xff20395A).withValues(alpha: 0.3)
                       : Colors.grey.shade400,
                 ),
                 borderRadius: BorderRadius.circular(12),

@@ -89,7 +89,7 @@ class _MainScreenState extends State<MainScreen> {
             color: const Color(0xFFFFFFFF),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF1E2D3D).withAlpha(0.07 as int),
+                color: Color(0xFF1E2D3D),
                 blurRadius: 24,
                 offset: const Offset(0, -6),
               ),

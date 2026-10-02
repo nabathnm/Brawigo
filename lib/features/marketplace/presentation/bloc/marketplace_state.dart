@@ -15,3 +15,23 @@ class MarketplaceError extends MarketplaceState {
 
   MarketplaceError({required this.message});
 }
+
+class MarketplaceDeleteSuccess extends MarketplaceState {
+  final String message;
+
+  MarketplaceDeleteSuccess({required this.message});
+}
+
+class ProductImagesLoading extends MarketplaceState {}
+
+class ProductImagesLoaded extends MarketplaceState {
+  final List<String> images;
+
+  ProductImagesLoaded({required this.images});
+}
+
+class ProductImagesError extends MarketplaceState {
+  final String message;
+
+  ProductImagesError({required this.message});
+}

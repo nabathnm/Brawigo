@@ -11,7 +11,7 @@ class CustomSearch extends StatelessWidget {
     required this.controller,
     this.onChanged,
     this.onFilterPressed,
-    this.hintText = 'Cari produk saya..',
+    this.hintText = 'Cari ..',
   });
 
   @override
@@ -33,19 +33,14 @@ class CustomSearch extends StatelessWidget {
                 hintText: hintText,
                 hintStyle: const TextStyle(
                   color: Color(0xFF8C9AA8),
-                  fontSize: 15,
+                  fontSize: 14,
                 ),
                 prefixIcon: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.only(left: 12, right: 8),
                   child: Image.asset(
                     "assets/images/icon/find.png",
-                    width: 20,
-                    height: 20,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.search_rounded,
-                      color: Color(0xFF8C9AA8),
-                      size: 20,
-                    ),
+                    width: 24,
+                    height: 24,
                   ),
                 ),
                 border: InputBorder.none,
@@ -60,13 +55,6 @@ class CustomSearch extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(8),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
           child: InkWell(
             onTap: onFilterPressed ?? () {},

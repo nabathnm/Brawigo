@@ -17,7 +17,8 @@ class BrawigoApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (context) => AuthBloc(supabaseClient: Supabase.instance.client),
+          create: (context) =>
+              AuthBloc(supabaseClient: Supabase.instance.client),
         ),
         BlocProvider<MarketplaceBloc>(
           create: (context) => MarketplaceBloc()..add(LoadProducts()),
@@ -29,7 +30,9 @@ class BrawigoApp extends StatelessWidget {
         theme: ThemeData(
           primaryColor: BrawigoColors.blue400,
           scaffoldBackgroundColor: BrawigoColors.blue50,
-          textTheme: GoogleFonts.plusJakartaSansTextTheme(Theme.of(context).textTheme),
+          textTheme: GoogleFonts.plusJakartaSansTextTheme(
+            Theme.of(context).textTheme,
+          ),
           useMaterial3: true,
         ),
         routerConfig: appRouter,

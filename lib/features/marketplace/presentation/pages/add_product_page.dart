@@ -1,14 +1,15 @@
-import 'dart:io';
-import 'dart:ui' as ui;
-import 'package:dotted_border/dotted_border.dart';
-import 'package:flutter/foundation.dart';
+import 'package:brawigo/brawigo.dart';
+import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../bloc/marketplace_bloc.dart';
 import '../bloc/marketplace_event.dart';
 import '../bloc/marketplace_state.dart';
+import '../data/category_repository.dart';
+import 'widgets/add_product_form.dart';
+import 'widgets/add_product_loading.dart';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -20,701 +21,223 @@ class AddProductPage extends StatefulWidget {
 class _AddProductPageState extends State<AddProductPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _descController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _stockController = TextEditingController(text: '1');
+  final _imagePicker = ImagePicker();
 
-  List<XFile> _selectedImages = [];
-  final ImagePicker _picker = ImagePicker();
-
-  String? _selectedCategory;
+  final _categoryRepository = CategoryRepository();
   List<Map<String, dynamic>> _categories = [];
+  List<XFile> _selectedImages = [];
+  String? _selectedCategoryId;
   bool _isLoadingCategories = true;
+  bool _isPickingImages = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchCategories();
-    _nameController.addListener(() => setState(() {}));
-    _descController.addListener(() => setState(() {}));
+    _loadCategories();
+    _nameController.addListener(_refresh);
   }
 
-  Future<void> _fetchCategories() async {
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadCategories() async {
     try {
-      final response = await Supabase.instance.client
-          .from('categories')
-          .select();
-      if (mounted) {
-        setState(() {
-          _categories = List<Map<String, dynamic>>.from(response);
-          _isLoadingCategories = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingCategories = false;
-        });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Gagal memuat kategori: $e')));
-      }
+      final categories = await _categoryRepository.getCategories();
+      if (!mounted) return;
+      setState(() {
+        _categories = categories;
+        _isLoadingCategories = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isLoadingCategories = false);
+      _showMessage('Gagal memuat kategori: $error', isError: true);
     }
   }
 
-  Future<void> _pickImage() async {
-    final List<XFile> images = await _picker.pickMultiImage(imageQuality: 85);
-    if (images.isNotEmpty) {
-      if (_selectedImages.length + images.length > 10) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Maksimal 10 foto yang diperbolehkan! Foto lainnya akan diabaikan.',
-            ),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        setState(() {
-          final spaceLeft = 10 - _selectedImages.length;
-          _selectedImages.addAll(images.take(spaceLeft));
-        });
-      } else {
-        setState(() {
-          _selectedImages.addAll(images);
-        });
+  Future<void> _pickImages() async {
+    if (_isPickingImages || _selectedImages.length >= 10) return;
+    setState(() => _isPickingImages = true);
+
+    try {
+      final picked = await _imagePicker.pickMultiImage(imageQuality: 85);
+      if (!mounted || picked.isEmpty) return;
+
+      final remaining = 10 - _selectedImages.length;
+      setState(() {
+        _selectedImages = [..._selectedImages, ...picked.take(remaining)];
+      });
+
+      if (picked.length > remaining) {
+        _showMessage('Maksimal 10 foto. Foto yang melebihi batas diabaikan.');
       }
+    } catch (error) {
+      if (mounted) _showMessage('Gagal memilih foto: $error', isError: true);
+    } finally {
+      if (mounted) setState(() => _isPickingImages = false);
     }
   }
 
   void _removeImage(int index) {
-    setState(() {
-      _selectedImages.removeAt(index);
-    });
+    setState(() => _selectedImages.removeAt(index));
   }
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      if (_selectedImages.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Harap unggah minimal 1 foto produk!'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-      if (_selectedCategory == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Harap pilih kategori produk!'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-      if (_selectedImages.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Harap unggah minimal 1 foto produk!'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
 
-      final name = _nameController.text.trim();
-      final desc = _descController.text.trim();
-      final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
-      final stock = int.tryParse(_stockController.text.trim()) ?? 1;
-      // Memicu event AddProduct ke MarketplaceBloc
-      context.read<MarketplaceBloc>().add(
-        AddProduct(
-          name: name,
-          description: desc,
-          price: price,
-          stock: stock,
-          categoryId: _selectedCategory!,
-          images: _selectedImages,
+    if (_selectedImages.isEmpty) {
+      _showMessage('Harap unggah minimal 1 foto produk!', isError: true);
+      return;
+    }
+    if (_selectedCategoryId == null) {
+      _showMessage('Harap pilih kategori produk!', isError: true);
+      return;
+    }
+
+    final price = double.tryParse(_priceController.text.trim());
+    final stock = int.tryParse(_stockController.text.trim());
+    if (price == null || price <= 0) {
+      _showMessage('Masukkan harga yang valid.', isError: true);
+      return;
+    }
+    if (stock == null || stock < 0) {
+      _showMessage('Masukkan stok yang valid.', isError: true);
+      return;
+    }
+
+    context.read<MarketplaceBloc>().add(
+      AddProduct(
+        name: _nameController.text.trim(),
+        description: _descriptionController.text.trim(),
+        price: price,
+        stock: stock,
+        categoryId: _selectedCategoryId!,
+        images: List<XFile>.unmodifiable(_selectedImages),
+      ),
+    );
+  }
+
+  void _showMessage(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isError ? Colors.red : Colors.orange,
         ),
       );
+  }
+
+  void _onMarketplaceState(BuildContext context, MarketplaceState state) {
+    if (state is MarketplaceError) {
+      _showMessage(state.message, isError: true);
+    } else if (state is MarketplaceLoaded) {
+      // Pertahankan perilaku kode awal. Sebaiknya ganti dengan state sukses
+      // khusus AddProduct agar state Loaded dari proses lain tidak dianggap sukses.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Produk berhasil ditambahkan!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.of(context).pop();
     }
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _descController.dispose();
+    _nameController
+      ..removeListener(_refresh)
+      ..dispose();
+    _descriptionController.dispose();
     _priceController.dispose();
     _stockController.dispose();
     super.dispose();
   }
 
-  // Helper widget for Label + *
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: RichText(
-        text: TextSpan(
-          text: text,
-          style: const TextStyle(
-            color: Color(0xFF1E3A8A),
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-          children: const [
-            TextSpan(
-              text: ' *',
-              style: TextStyle(color: Colors.red),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  InputDecoration _buildInputDecoration({
-    String? hintText,
-    Widget? prefix,
-    Widget? suffix,
-  }) {
-    return InputDecoration(
-      hintText: hintText,
-      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-
-      prefix: prefix,
-
-      suffix: suffix,
-
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF1E3A8A), width: 1.5),
-      ),
-
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
-      ),
-
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return BlocListener<MarketplaceBloc, MarketplaceState>(
-      listener: (context, state) {
-        if (state is MarketplaceError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
-        } else if (state is MarketplaceLoaded) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Produk berhasil ditambahkan!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context);
-        }
-      },
-      child: Scaffold(
-        backgroundColor: Colors.grey.shade50,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: Padding(
-            padding: const EdgeInsets.only(left: 16.0, top: 8, bottom: 8),
-            child: InkWell(
-              onTap: () => Navigator.pop(context),
-              borderRadius: BorderRadius.circular(30),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.arrow_back_ios_new,
-                  color: Color(0xFF1E3A8A),
-                  size: 18,
-                ),
-              ),
-            ),
-          ),
-          leadingWidth: 64, // Padding + Icon Width
-          title: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Tambah Produk",
-                style: TextStyle(
-                  color: Color(0xFF1E3A8A),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              Text(
-                "Isi data produk baru",
-                style: TextStyle(color: Colors.blueGrey, fontSize: 12),
-              ),
-            ],
-          ),
-          centerTitle: false,
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFC8DAEF), Color(0xFFE6EDF8), Color(0xFFFAFAFA)],
+          stops: [0.0, 0.2, 1.0],
         ),
-        body: BlocBuilder<MarketplaceBloc, MarketplaceState>(
-          builder: (context, state) {
-            if (state is MarketplaceLoading) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: Color(0xFF1E3A8A)),
-                    SizedBox(height: 16),
-                    Text('Menyimpan produk dan mengunggah gambar...'),
-                  ],
+      ),
+      child: BlocListener<MarketplaceBloc, MarketplaceState>(
+        listener: _onMarketplaceState,
+        child: Scaffold(
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leadingWidth: 64,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 16, top: 8, bottom: 8),
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF1E3A8A),
+                  overlayColor: Colors.transparent,
+                  shape: const CircleBorder(),
+                  padding: const EdgeInsets.all(12),
+                  elevation: 2,
+                  shadowColor: Colors.black.withOpacity(0.05),
+                  minimumSize: const Size(42, 42),
                 ),
-              );
-            }
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // --- Nama Produk ---
-                    _buildLabel("Nama Produk"),
-                    TextFormField(
-                      controller: _nameController,
-                      maxLength: 100,
-                      buildCounter:
-                          (
-                            context, {
-                            required currentLength,
-                            required isFocused,
-                            maxLength,
-                          }) => null, // Hide default counter
-                      decoration: _buildInputDecoration(
-                        hintText: 'Contoh: John Doe',
-                      ),
-                      validator: (value) => value == null || value.isEmpty
-                          ? 'Nama produk tidak boleh kosong'
-                          : null,
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          '${_nameController.text.length}/100',
-                          style: TextStyle(
-                            color: Colors.grey.shade400,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // --- Foto Produk ---
-                    _buildLabel("Foto Produk"),
-                    GestureDetector(
-                      onTap: _selectedImages.length < 10 ? _pickImage : null,
-                      child: DottedBorder(
-                        options: RoundedRectDottedBorderOptions(
-                          color: Colors.grey.shade400,
-                          strokeWidth: 1.5,
-                          dashPattern: const [6, 4],
-                          radius: const Radius.circular(12),
-                        ),
-                        child: Container(
-                          width: double.infinity,
-                          constraints: const BoxConstraints(minHeight: 140),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: _selectedImages.isEmpty
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.shade50,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.camera_alt,
-                                        color: Color(0xFF1E3A8A),
-                                        size: 24,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    const Text(
-                                      "Ketuk untuk unggah foto",
-                                      style: TextStyle(
-                                        color: Color(0xFF1E3A8A),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      "Maks. 10 foto · JPG, PNG · max 5 MB",
-                                      style: TextStyle(
-                                        color: Colors.grey.shade500,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : Column(
-                                  children: [
-                                    SizedBox(
-                                      height: 100,
-                                      child: ListView.builder(
-                                        scrollDirection: Axis.horizontal,
-                                        itemCount:
-                                            _selectedImages.length +
-                                            (_selectedImages.length < 10
-                                                ? 1
-                                                : 0),
-                                        itemBuilder: (context, index) {
-                                          if (index == _selectedImages.length) {
-                                            // Tombol Tambah
-                                            return GestureDetector(
-                                              onTap: _pickImage,
-                                              child: Container(
-                                                width: 80,
-                                                margin: const EdgeInsets.only(
-                                                  right: 8,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.blue.shade50,
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                child: const Column(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.camera_alt,
-                                                      color: Color(0xFF1E3A8A),
-                                                    ),
-                                                    SizedBox(height: 4),
-                                                    Text(
-                                                      "Tambah",
-                                                      style: TextStyle(
-                                                        color: Color(
-                                                          0xFF1E3A8A,
-                                                        ),
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          }
-
-                                          final image = _selectedImages[index];
-                                          return Stack(
-                                            children: [
-                                              Container(
-                                                margin: const EdgeInsets.only(
-                                                  right: 8,
-                                                ),
-                                                width: 100,
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color: Colors.grey.shade300,
-                                                  ),
-                                                ),
-                                                child: ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  child: kIsWeb
-                                                      ? Image.network(
-                                                          image.path,
-                                                          fit: BoxFit.cover,
-                                                        )
-                                                      : Image.file(
-                                                          File(image.path),
-                                                          fit: BoxFit.cover,
-                                                        ),
-                                                ),
-                                              ),
-                                              Positioned(
-                                                top: 4,
-                                                right: 12,
-                                                child: GestureDetector(
-                                                  onTap: () {
-                                                    setState(() {
-                                                      _selectedImages.removeAt(
-                                                        index,
-                                                      );
-                                                    });
-                                                  },
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.all(2),
-                                                    decoration:
-                                                        const BoxDecoration(
-                                                          color: Colors.red,
-                                                          shape:
-                                                              BoxShape.circle,
-                                                        ),
-                                                    child: const Icon(
-                                                      Icons.close,
-                                                      color: Colors.white,
-                                                      size: 14,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      "Maks. 10 foto · JPG, PNG · max 5 MB",
-                                      style: TextStyle(
-                                        color: Colors.grey.shade500,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // --- Harga ---
-                    _buildLabel("Harga"),
-                    TextFormField(
-                      controller: _priceController,
-                      keyboardType: TextInputType.number,
-                      decoration: _buildInputDecoration(
-                        hintText: '0',
-                        prefix: const Text(
-                          'Rp ',
-                          style: TextStyle(
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // --- Stok ---
-                    _buildLabel("Stok"),
-                    TextFormField(
-                      controller: _stockController,
-                      keyboardType: TextInputType.number,
-                      decoration: _buildInputDecoration(hintText: '0'),
-                      validator: (value) {
-                        if (value == null || value.isEmpty)
-                          return 'Stok tidak boleh kosong';
-                        if (int.tryParse(value) == null ||
-                            int.parse(value) < 0) {
-                          return 'Masukkan angka stok yang valid (minimal 0)';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // --- Kategori ---
-                    _buildLabel("Kategori"),
-                    _isLoadingCategories
-                        ? const Center(child: CircularProgressIndicator())
-                        : Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.white,
-                            ),
-                            child: DropdownButtonFormField<String>(
-                              decoration: _buildInputDecoration(
-                                hintText: 'Pilih kategori produk',
-                              ),
-                              icon: const Icon(
-                                Icons.keyboard_arrow_down,
-                                color: Colors.black87,
-                              ),
-                              initialValue: _selectedCategory,
-                              items: _categories.map((cat) {
-                                return DropdownMenuItem<String>(
-                                  value: cat['id'] as String,
-                                  child: Text(cat['name'] as String),
-                                );
-                              }).toList(),
-                              onChanged: (value) =>
-                                  setState(() => _selectedCategory = value),
-                              validator: (value) => value == null
-                                  ? 'Pilih kategori produk'
-                                  : null,
-                            ),
-                          ),
-                    const SizedBox(height: 16),
-
-                    // --- Deskripsi ---
-                    _buildLabel("Deskripsi"),
-                    TextFormField(
-                      controller: _descController,
-                      maxLines: 4,
-                      decoration: _buildInputDecoration(
-                        hintText: 'Jelaskan produk secara detail..',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty)
-                          return 'Deskripsi tidak boleh kosong';
-                        if (value.trim().length < 20)
-                          return 'Deskripsi minimal 20 karakter';
-                        return null;
-                      },
-                    ),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          'Min. 20 karakter',
-                          style: TextStyle(
-                            color: Colors.grey.shade400,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    const SizedBox(height: 32),
-
-                    // --- Tombol Submit ---
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          backgroundColor:
-                              Colors.transparent, // Required for gradient
-                          shadowColor:
-                              Colors.transparent, // Disable default shadow
-                        ),
-                        onPressed: _submitForm,
-                        child: Ink(
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFF3B82F6),
-                                Color(0xFF1E3A8A),
-                              ], // light to dark blue
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Container(
-                            alignment: Alignment.center,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            child: const Text(
-                              'Simpan',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
+                child: const Icon(Icons.arrow_back_ios_new, size: 18),
               ),
-            );
-          },
+            ),
+            title: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tambah Produk',
+                  style: TextStyle(
+                    color: Color(0xFF1E3A8A),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 20,
+                  ),
+                ),
+                Text(
+                  'Isi data produk baru',
+                  style: TextStyle(color: BrawigoColors.blue800, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+          body: BlocBuilder<MarketplaceBloc, MarketplaceState>(
+            builder: (context, state) {
+              if (state is MarketplaceLoading) {
+                return const AddProductLoading();
+              }
+              return AddProductForm(
+                formKey: _formKey,
+                nameController: _nameController,
+                descriptionController: _descriptionController,
+                priceController: _priceController,
+                stockController: _stockController,
+                categories: _categories,
+                selectedCategoryId: _selectedCategoryId,
+                onCategoryChanged: (value) =>
+                    setState(() => _selectedCategoryId = value),
+                selectedImages: _selectedImages,
+                isLoadingCategories: _isLoadingCategories,
+                isPickingImages: _isPickingImages,
+                onPickImages: _pickImages,
+                onRemoveImage: _removeImage,
+                onSubmit: _submit,
+              );
+            },
+          ),
         ),
       ),
     );
   }
-}
-
-class _DashedBorderPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double gap;
-  final double dashWidth;
-  final double radius;
-
-  _DashedBorderPainter({
-    required this.color,
-    this.strokeWidth = 1.5,
-    this.gap = 5.0,
-    this.dashWidth = 6.0,
-    this.radius = 16.0,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final Paint paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke;
-
-    final RRect rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Radius.circular(radius),
-    );
-
-    final Path path = Path()..addRRect(rrect);
-    final Path dashPath = Path();
-
-    for (final ui.PathMetric metric in path.computeMetrics()) {
-      double distance = 0.0;
-      while (distance < metric.length) {
-        dashPath.addPath(
-          metric.extractPath(distance, distance + dashWidth),
-          Offset.zero,
-        );
-        distance += dashWidth + gap;
-      }
-    }
-
-    canvas.drawPath(dashPath, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

@@ -64,3 +64,9 @@ class DeleteProduct extends MarketplaceEvent {
 
   DeleteProduct({required this.id, this.imageUrl});
 }
+
+class LoadProductImages extends MarketplaceEvent {
+  final String productId;
+
+  LoadProductImages({required this.productId});
+}

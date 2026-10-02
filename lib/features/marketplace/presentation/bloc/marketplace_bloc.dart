@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -13,9 +15,13 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
     on<AddProduct>(_onAddProduct);
     on<UpdateProduct>(_onUpdateProduct);
     on<DeleteProduct>(_onDeleteProduct);
+    on<LoadProductImages>(_onLoadProductImages);
   }
 
-  Future<void> _onLoadSellerProducts(LoadSellerProducts event, Emitter<MarketplaceState> emit) async {
+  Future<void> _onLoadSellerProducts(
+    LoadSellerProducts event,
+    Emitter<MarketplaceState> emit,
+  ) async {
     emit(MarketplaceLoading());
     try {
       final user = _supabase.auth.currentUser;
@@ -26,15 +32,22 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
           .select()
           .eq('seller_id', user.id)
           .order('created_at', ascending: false);
-      
+
       final products = List<Map<String, dynamic>>.from(response);
       emit(MarketplaceLoaded(products: products));
     } catch (e) {
-      emit(MarketplaceError(message: 'Gagal memuat produk seller: ${e.toString()}'));
+      emit(
+        MarketplaceError(
+          message: 'Gagal memuat produk seller: ${e.toString()}',
+        ),
+      );
     }
   }
 
-  Future<void> _onLoadProducts(LoadProducts event, Emitter<MarketplaceState> emit) async {
+  Future<void> _onLoadProducts(
+    LoadProducts event,
+    Emitter<MarketplaceState> emit,
+  ) async {
     emit(MarketplaceLoading());
     try {
       final response = await _supabase
@@ -50,7 +63,9 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
   }
 
   Future<void> _onAddProduct(
-      AddProduct event, Emitter<MarketplaceState> emit) async {
+    AddProduct event,
+    Emitter<MarketplaceState> emit,
+  ) async {
     emit(MarketplaceLoading());
     try {
       final user = _supabase.auth.currentUser;
@@ -66,35 +81,39 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
           final uniqueId = DateTime.now().microsecondsSinceEpoch;
           final fileName = '$uniqueId.$fileExt';
 
-          await _supabase.storage.from('product_images').uploadBinary(
+          await _supabase.storage
+              .from('product_images')
+              .uploadBinary(
                 fileName,
                 bytes,
                 fileOptions: FileOptions(contentType: 'image/$fileExt'),
               );
 
-          final imageUrl =
-              _supabase.storage.from('product_images').getPublicUrl(fileName);
+          final imageUrl = _supabase.storage
+              .from('product_images')
+              .getPublicUrl(fileName);
 
-          uploadedImagesData.add({
-            'url': imageUrl,
-            'path': fileName,
-          });
+          uploadedImagesData.add({'url': imageUrl, 'path': fileName});
         }
       }
 
       // 2. Insert data ke tabel products
-      final productResponse = await _supabase.from('products').insert({
-        'product_name': event.name,
-        'description': event.description,
-        'price': event.price,
-        'seller_id': user.id,
-        'category_id': event.categoryId,
-        'stock': event.stock,
-        'status': 'active',
-        'moderation_status': 'pending',
-        if (uploadedImagesData.isNotEmpty)
-          'thumbnail_url': uploadedImagesData.first['url'],
-      }).select('id').single();
+      final productResponse = await _supabase
+          .from('products')
+          .insert({
+            'product_name': event.name,
+            'description': event.description,
+            'price': event.price,
+            'seller_id': user.id,
+            'category_id': event.categoryId,
+            'stock': event.stock,
+            'status': 'active',
+            'moderation_status': 'pending',
+            if (uploadedImagesData.isNotEmpty)
+              'thumbnail_url': uploadedImagesData.first['url'],
+          })
+          .select('id')
+          .single();
 
       final newProductId = productResponse['id'];
 
@@ -120,7 +139,9 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
   }
 
   Future<void> _onUpdateProduct(
-      UpdateProduct event, Emitter<MarketplaceState> emit) async {
+    UpdateProduct event,
+    Emitter<MarketplaceState> emit,
+  ) async {
     emit(MarketplaceLoading());
     try {
       // 1. Hapus gambar yang ditandai dihapus dari Storage
@@ -163,13 +184,16 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
         final fileName =
             'products/${event.id}/${DateTime.now().millisecondsSinceEpoch}_$nextOrder.$fileExt';
 
-        await _supabase.storage.from('product_images').uploadBinary(
+        await _supabase.storage
+            .from('product_images')
+            .uploadBinary(
               fileName,
               bytes,
               fileOptions: FileOptions(contentType: 'image/$fileExt'),
             );
-        final url =
-            _supabase.storage.from('product_images').getPublicUrl(fileName);
+        final url = _supabase.storage
+            .from('product_images')
+            .getPublicUrl(fileName);
 
         await _supabase.from('product_images').insert({
           'product_id': event.id,
@@ -191,21 +215,26 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
             .eq('product_id', event.id)
             .order('image_order', ascending: true)
             .limit(1);
-        thumbnailUrl =
-            allImages.isNotEmpty ? allImages.first['image_url'] as String? : null;
+        thumbnailUrl = allImages.isNotEmpty
+            ? allImages.first['image_url'] as String?
+            : null;
       }
 
       // 5. Update data produk di tabel products
-      await _supabase.from('products').update({
-        'product_name': event.name,
-        'description': event.description,
-        'price': event.price,
-        if (event.stock != null) 'stock': event.stock,
-        if (event.categoryId != null) 'category_id': event.categoryId,
-        if (event.condition != null) 'condition': event.condition,
-        if (event.pickupLocation != null) 'pickup_location': event.pickupLocation,
-        if (thumbnailUrl != null) 'thumbnail_url': thumbnailUrl,
-      }).eq('id', event.id);
+      await _supabase
+          .from('products')
+          .update({
+            'product_name': event.name,
+            'description': event.description,
+            'price': event.price,
+            if (event.stock != null) 'stock': event.stock,
+            if (event.categoryId != null) 'category_id': event.categoryId,
+            if (event.condition != null) 'condition': event.condition,
+            if (event.pickupLocation != null)
+              'pickup_location': event.pickupLocation,
+            if (thumbnailUrl != null) 'thumbnail_url': thumbnailUrl,
+          })
+          .eq('id', event.id);
 
       // 6. Muat ulang produk
       add(LoadProducts());
@@ -215,40 +244,84 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
   }
 
   Future<void> _onDeleteProduct(
-      DeleteProduct event, Emitter<MarketplaceState> emit) async {
+    DeleteProduct event,
+    Emitter<MarketplaceState> emit,
+  ) async {
     emit(MarketplaceLoading());
-    try {
-      // 1. Hapus semua gambar di product_images dari Storage
-      try {
-        final images = await _supabase
-            .from('product_images')
-            .select('image_path')
-            .eq('product_id', event.id);
-        for (final img in images) {
-          final path = img['image_path']?.toString() ?? '';
-          if (path.isNotEmpty) {
-            try {
-              await _supabase.storage.from('product_images').remove([path]);
-            } catch (_) {}
-          }
-        }
-      } catch (_) {}
 
-      // Fallback: coba hapus thumbnail dari URL lama jika ada
-      if (event.imageUrl != null && event.imageUrl!.isNotEmpty) {
-        try {
-          final fileName = event.imageUrl!.split('/').last;
-          await _supabase.storage.from('product_images').remove([fileName]);
-        } catch (_) {}
+    try {
+      // Ambil lokasi gambar sebelum produk dihapus.
+      final images = await _supabase
+          .from('product_images')
+          .select('image_path')
+          .eq('product_id', event.id);
+
+      final imagePaths = images
+          .map((image) => image['image_path']?.toString() ?? '')
+          .where((path) => path.isNotEmpty)
+          .toSet()
+          .toList();
+
+      // Hapus produk satu kali.
+      final deletedProducts = await _supabase
+          .from('products')
+          .delete()
+          .eq('id', event.id)
+          .select('id');
+
+      if (deletedProducts.isEmpty) {
+        throw Exception(
+          'Produk tidak ditemukan atau tidak memiliki izin untuk dihapus.',
+        );
       }
 
-      // 2. Hapus data dari Database (product_images terhapus via cascade jika ada)
-      await _supabase.from('products').delete().eq('id', event.id);
+      // Hapus file gambar dari Storage.
+      if (imagePaths.isNotEmpty) {
+        try {
+          await _supabase.storage.from('product_images').remove(imagePaths);
+        } catch (e) {
+          // Penghapusan produk sudah berhasil.
+          // Kegagalan menghapus gambar tidak membatalkan penghapusan.
+          print('Gagal menghapus gambar: $e');
+        }
+      }
 
-      // 3. Muat ulang produk
-      add(LoadProducts());
+      emit(MarketplaceDeleteSuccess(message: 'Produk berhasil dihapus'));
+
+      // Muat ulang daftar produk seller.
+      add(LoadSellerProducts());
     } catch (e) {
-      emit(MarketplaceError(message: 'Gagal menghapus produk: ${e.toString()}'));
+      emit(
+        MarketplaceError(message: 'Gagal menghapus produk: ${e.toString()}'),
+      );
+    }
+
+    Future<void> _onLoadProductImages(
+      LoadProductImages event,
+      Emitter<MarketplaceState> emit,
+    ) async {
+      emit(ProductImagesLoading());
+
+      try {
+        final response = await _supabase
+            .from('product_images')
+            .select('image_url')
+            .eq('product_id', event.productId)
+            .order('image_order', ascending: true);
+
+        final images = (response as List)
+            .map((item) => item['image_url'].toString())
+            .toList();
+
+        emit(ProductImagesLoaded(images: images));
+      } catch (e) {
+        emit(ProductImagesError(message: e.toString()));
+      }
     }
   }
+
+  FutureOr<void> _onLoadProductImages(
+    LoadProductImages event,
+    Emitter<MarketplaceState> emit,
+  ) {}
 }

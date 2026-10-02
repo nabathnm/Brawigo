@@ -4,7 +4,6 @@ import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.
 import 'package:brawigo/features/marketplace/presentation/pages/product_detail_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/update_product_page.dart';
 
-
 class SellerProductCard extends StatelessWidget {
   final Map<String, dynamic> product;
   final VoidCallback onDelete;
@@ -57,7 +56,6 @@ class SellerProductCard extends StatelessWidget {
     }
 
     return Container(
-      height: 148,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -66,7 +64,6 @@ class SellerProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Bagian Atas: Gambar + Detail Produk
           Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -88,71 +85,77 @@ class SellerProductCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: badgeBg,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        badgeText,
-                        style: TextStyle(color: badgeColor, fontSize: 12),
-                      ),
-                    ),
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1D4A79),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      categoryName,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6A7A8A),
-                        fontWeight: FontWeight.w400,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Rp $formattedPrice",
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1D4A79),
-                          ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 2,
                         ),
-                        Text(
-                          "Stok: $stock",
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF556575),
-                          ),
+                        decoration: BoxDecoration(
+                          color: badgeBg,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
-                    ),
-                  ],
+                        child: Text(
+                          badgeText,
+                          style: TextStyle(color: badgeColor, fontSize: 12),
+                        ),
+                      ),
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1D4A79),
+                        ),
+                      ),
+                      Text(
+                        categoryName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6A7A8A),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              "Rp $formattedPrice",
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1D4A79),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Stok: $stock",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF556575),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-
-          // Garis Pemisah & Tombol Aksi (Edit, Detail, Hapus)
           const Divider(height: 1, thickness: 1, color: Color(0xFFEFF3F7)),
+
           SizedBox(
             height: 36,
             child: Row(
@@ -179,7 +182,7 @@ class SellerProductCard extends StatelessWidget {
                         Icon(
                           Icons.edit_outlined,
                           color: Color(0xFF007BFF),
-                          size: 10,
+                          size: 16,
                         ),
                         SizedBox(width: 8),
                         Text(
@@ -201,8 +204,10 @@ class SellerProductCard extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              ProductDetailPage(product: product),
+                          builder: (_) => BlocProvider.value(
+                            value: context.read<MarketplaceBloc>(),
+                            child: ProductDetailPage(product: product),
+                          ),
                         ),
                       );
                     },
@@ -212,7 +217,7 @@ class SellerProductCard extends StatelessWidget {
                         Icon(
                           Icons.visibility_outlined,
                           color: Color(0xFF6A7A8A),
-                          size: 10,
+                          size: 16,
                         ),
                         SizedBox(width: 8),
                         Text(
@@ -240,7 +245,7 @@ class SellerProductCard extends StatelessWidget {
                         Icon(
                           Icons.delete_outline_rounded,
                           color: Color(0xFFFF4D4F),
-                          size: 10,
+                          size: 16,
                         ),
                         SizedBox(width: 8),
                         Text(

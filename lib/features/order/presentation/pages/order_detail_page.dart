@@ -56,7 +56,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return Scaffold(
       backgroundColor: BrawigoColors.blue50,
       appBar: AppBar(
-        title: const Text('Detail Pesanan', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text(
+          'Detail Pesanan',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         backgroundColor: BrawigoColors.blue700,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -65,18 +68,26 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         listener: (context, state) {
           if (state is OrderSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message ?? 'Berhasil'), backgroundColor: BrawigoColors.greenNormal),
+              SnackBar(
+                content: Text(state.message ?? 'Berhasil'),
+                backgroundColor: BrawigoColors.greenNormal,
+              ),
             );
             _fetchOrderDetail(); // Refresh
           } else if (state is OrderError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         },
         builder: (context, state) {
           if (_isLoading || state is OrderLoading) {
-            return const Center(child: CircularProgressIndicator(color: BrawigoColors.blue700));
+            return const Center(
+              child: CircularProgressIndicator(color: BrawigoColors.blue700),
+            );
           }
 
           if (_errorMessage != null || _order == null) {
@@ -91,9 +102,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           final order = _order!;
           final productName = order['product_name_snapshot'] ?? 'Produk';
           final totalAmount = order['total_amount']?.toString() ?? '0';
-          final paymentMethod = order['payment_method']?.toString().toUpperCase() ?? 'COD';
-          final orderStatus = order['order_status']?.toString().toUpperCase() ?? 'CREATED';
-          final paymentStatus = order['payment_status']?.toString().toUpperCase() ?? 'PENDING';
+          final paymentMethod =
+              order['payment_method']?.toString().toUpperCase() ?? 'COD';
+          final orderStatus =
+              order['order_status']?.toString().toUpperCase() ?? 'CREATED';
+          final paymentStatus =
+              order['payment_status']?.toString().toUpperCase() ?? 'PENDING';
           final meetupLocation = order['meetup_location'] ?? '-';
           final meetupTime = order['meetup_time'] ?? '-';
           final quantity = order['quantity']?.toString() ?? '1';
@@ -120,18 +134,38 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Status Pesanan', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          const Text(
+                            'Status Pesanan',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
                           const SizedBox(height: 4),
-                          Text(orderStatus, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: BrawigoColors.blue950)),
+                          Text(
+                            orderStatus,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: BrawigoColors.blue950,
+                            ),
+                          ),
                         ],
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: BrawigoColors.blue100,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Text(paymentStatus, style: const TextStyle(color: BrawigoColors.blue700, fontWeight: FontWeight.bold, fontSize: 12)),
+                        child: Text(
+                          paymentStatus,
+                          style: const TextStyle(
+                            color: BrawigoColors.blue700,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -149,29 +183,63 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Informasi Produk', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: BrawigoColors.blue950)),
+                      const Text(
+                        'Informasi Produk',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: BrawigoColors.blue950,
+                        ),
+                      ),
                       const Divider(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Expanded(child: Text(productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15))),
-                          Text('x$quantity', style: const TextStyle(color: Colors.grey)),
+                          Expanded(
+                            child: Text(
+                              productName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            'x$quantity',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Total Pembayaran', style: TextStyle(color: Colors.grey)),
-                          Text('Rp $totalAmount', style: const TextStyle(fontWeight: FontWeight.bold, color: BrawigoColors.blue600, fontSize: 16)),
+                          const Text(
+                            'Total Pembayaran',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          Text(
+                            'Rp $totalAmount',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: BrawigoColors.blue600,
+                              fontSize: 16,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Metode Pembayaran', style: TextStyle(color: Colors.grey)),
-                          Text(paymentMethod, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          const Text(
+                            'Metode Pembayaran',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          Text(
+                            paymentMethod,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
                         ],
                       ),
                     ],
@@ -190,21 +258,50 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Informasi Meetup', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: BrawigoColors.blue950)),
+                      const Text(
+                        'Informasi Meetup',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: BrawigoColors.blue950,
+                        ),
+                      ),
                       const Divider(height: 24),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_outlined, size: 18, color: BrawigoColors.blue600),
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 18,
+                            color: BrawigoColors.blue600,
+                          ),
                           const SizedBox(width: 8),
-                          Expanded(child: Text(meetupLocation, style: const TextStyle(fontWeight: FontWeight.w500))),
+                          Expanded(
+                            child: Text(
+                              meetupLocation,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          const Icon(Icons.access_time, size: 18, color: BrawigoColors.blue600),
+                          const Icon(
+                            Icons.access_time,
+                            size: 18,
+                            color: BrawigoColors.blue600,
+                          ),
                           const SizedBox(width: 8),
-                          Expanded(child: Text(meetupTime, style: const TextStyle(fontWeight: FontWeight.w500))),
+                          Expanded(
+                            child: Text(
+                              meetupTime,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -214,7 +311,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
                 // Seller Action Buttons
                 if (isSeller) ...[
-                  const Text('Aksi Penjual', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: BrawigoColors.blue950)),
+                  const Text(
+                    'Aksi Penjual',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: BrawigoColors.blue950,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   if (orderStatus == 'CREATED' || orderStatus == 'PENDING')
                     ElevatedButton.icon(
@@ -222,12 +326,22 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         backgroundColor: BrawigoColors.blue700,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       icon: const Icon(Icons.check_circle_outline),
-                      label: const Text('Konfirmasi & Terima Pesanan', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Konfirmasi & Terima Pesanan',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       onPressed: () {
-                        context.read<OrderBloc>().add(UpdateOrderStatus(orderId: widget.orderId, status: 'confirmed'));
+                        context.read<OrderBloc>().add(
+                          UpdateOrderStatus(
+                            orderId: widget.orderId,
+                            status: 'confirmed',
+                          ),
+                        );
                       },
                     ),
                   const SizedBox(height: 8),
@@ -237,12 +351,22 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         backgroundColor: BrawigoColors.greenNormal,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       icon: const Icon(Icons.done_all),
-                      label: const Text('Selesaikan Pesanan (Completed)', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Selesaikan Pesanan (Completed)',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       onPressed: () {
-                        context.read<OrderBloc>().add(UpdateOrderStatus(orderId: widget.orderId, status: 'completed'));
+                        context.read<OrderBloc>().add(
+                          UpdateOrderStatus(
+                            orderId: widget.orderId,
+                            status: 'completed',
+                          ),
+                        );
                       },
                     ),
                   const SizedBox(height: 8),
@@ -252,12 +376,22 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         foregroundColor: Colors.red,
                         side: const BorderSide(color: Colors.red),
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       icon: const Icon(Icons.cancel_outlined),
-                      label: const Text('Batalkan Pesanan', style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        'Batalkan Pesanan',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       onPressed: () {
-                        context.read<OrderBloc>().add(UpdateOrderStatus(orderId: widget.orderId, status: 'cancelled'));
+                        context.read<OrderBloc>().add(
+                          UpdateOrderStatus(
+                            orderId: widget.orderId,
+                            status: 'cancelled',
+                          ),
+                        );
                       },
                     ),
                 ],

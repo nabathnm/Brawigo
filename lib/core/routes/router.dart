@@ -15,23 +15,30 @@ import '../../features/auth/presentation/pages/onboarding_success_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
-import 'package:brawigo/features/marketplace/presentation/pages/buyer_product_detail_page.dart';
-import 'package:brawigo/features/marketplace/presentation/pages/buyer_search_page.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation : '/splash',
+  initialLocation: '/splash',
   debugLogDiagnostics: true,
 
   routes: [
-    GoRoute(path: '/splash',builder: (context,state) => const SplashPage()),
+    GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
     GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
-    GoRoute(path: '/register', builder: (context, state) => const RegisterPage()),
-  
-    GoRoute(path: '/otp', builder: (context, state) {
-      final email = (state.extra as String?) ?? '';
-      return OtpPage(email:email);
-    }),
-    GoRoute(path: '/complete-profile', builder: (context, state) => const CompleteProfilePage()),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterPage(),
+    ),
+
+    GoRoute(
+      path: '/otp',
+      builder: (context, state) {
+        final email = (state.extra as String?) ?? '';
+        return OtpPage(email: email);
+      },
+    ),
+    GoRoute(
+      path: '/complete-profile',
+      builder: (context, state) => const CompleteProfilePage(),
+    ),
     GoRoute(
       path: '/set-photo',
       builder: (context, state) => const SetPhotoPage(),
@@ -108,6 +115,5 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-  ]
-  
+  ],
 );

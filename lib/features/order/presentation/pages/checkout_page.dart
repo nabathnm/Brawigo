@@ -1,3 +1,7 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:brawigo/features/order/presentation/pages/models/payment_method.dart';
 import 'package:brawigo/features/order/presentation/pages/models/pickup_method.dart';
 import 'package:brawigo/features/order/presentation/pages/widgets/checkout_button.dart';
@@ -8,10 +12,6 @@ import 'package:brawigo/features/order/presentation/pages/widgets/payment_method
 import 'package:brawigo/features/order/presentation/pages/widgets/payment_method_selector.dart';
 import 'package:brawigo/features/order/presentation/pages/widgets/pickup_method_bottom_sheet.dart';
 import 'package:brawigo/features/order/presentation/pages/widgets/pickup_method_selector.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-
-import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 
 import '../bloc/order_bloc.dart';
 import '../bloc/order_event.dart';
@@ -35,7 +35,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _formKey = GlobalKey<FormState>();
 
   final _locationController = TextEditingController();
-  final _paymentController = TextEditingController();
   final _timeController = TextEditingController();
 
   final int _quantity = 1;
@@ -60,9 +59,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
       builder: (_) => const PickupMethodBottomSheet(),
     );
 
+    if (!mounted) return;
+
     if (result != null) {
       setState(() {
         _deliverMethod = result;
+        _locationController.clear();
+        _timeController.clear();
       });
     }
   }
@@ -77,6 +80,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       builder: (_) => const PaymentMethodBottomSheet(),
     );
 
+    if (!mounted) return;
+
     if (result != null) {
       setState(() {
         _paymentMethod = result;
@@ -85,6 +90,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   void _createOrder() {
+    if (_deliverMethod == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilih metode pengambilan terlebih dahulu'),
+        ),
+      );
+      return;
+    }
+
+    if (_paymentMethod == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilih metode pembayaran terlebih dahulu'),
+        ),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -93,9 +116,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
       CreateOrder(
         productId: widget.productId,
         quantity: _quantity,
-        paymentMethod: _paymentController.text,
-        meetupLocation: _locationController.text,
-        meetupTime: _timeController.text,
+        paymentMethod: _paymentMethod!.title,
+        pickupMethod: _deliverMethod!.name,
+        meetupLocation: _locationController.text.trim(),
+        meetupTime: _timeController.text.trim(),
       ),
     );
   }
@@ -126,13 +150,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
           backgroundColor: Colors.transparent,
           leading: GestureDetector(
             onTap: () => Navigator.pop(context),
-            child: Image.asset("./assets/icons/common/arrow_back.png"),
+            child: Image.asset('assets/icons/common/arrow_back.png'),
           ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Checkout",
+                'Checkout',
                 style: TextStyle(
                   fontSize: 20,
                   color: BrawigoColors.blue800,
@@ -140,7 +164,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
               ),
               Text(
-                "Periksa kembali pesanan kamu",
+                'Periksa kembali pesanan kamu',
                 style: TextStyle(fontSize: 12, color: BrawigoColors.blue800),
               ),
             ],
@@ -164,6 +188,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 PickupMethodSelector(
                   selectedMethod: _deliverMethod,
                   onTap: _showMethodPicker,
+                  locationController: _locationController,
+                  timeController: _timeController,
                 ),
 
                 const SizedBox(height: 12),

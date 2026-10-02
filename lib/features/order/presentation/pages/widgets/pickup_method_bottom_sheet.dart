@@ -22,14 +22,13 @@ class _PickupMethodBottomSheetState extends State<PickupMethodBottomSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Pilih Metode Pembayaran',
+            'Pilih Metode Pengambilan',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: BrawigoColors.blue700,
             ),
           ),
-
           const SizedBox(height: 12),
 
           ...pickupMethods.map(
@@ -37,10 +36,10 @@ class _PickupMethodBottomSheetState extends State<PickupMethodBottomSheet> {
               padding: const EdgeInsets.only(bottom: 8),
               child: _MethodButton(
                 method: method,
-                isSelected: selectedMethod == method,
+                isSelected: selectedMethod == method.type,
                 onTap: () {
                   setState(() {
-                    selectedMethod = method;
+                    selectedMethod = method.type;
                   });
                 },
               ),
@@ -49,7 +48,6 @@ class _PickupMethodBottomSheetState extends State<PickupMethodBottomSheet> {
 
           const SizedBox(height: 8),
 
-          // Button pilih metode
           SizedBox(
             width: double.infinity,
             height: 48,
@@ -80,7 +78,7 @@ class _PickupMethodBottomSheetState extends State<PickupMethodBottomSheet> {
 }
 
 class _MethodButton extends StatelessWidget {
-  final PickupMethod method;
+  final PickupMethodItem method;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -100,12 +98,13 @@ class _MethodButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected ? BrawigoColors.blue100 : Colors.white,
-          border: Border.all(color: Color(0xff20395A).withValues(alpha: 0.25)),
+          border: Border.all(
+            color: const Color(0xff20395A).withValues(alpha: 0.25),
+          ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            // Text
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,8 +128,6 @@ class _MethodButton extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Check di kanan
             Container(
               width: 22,
               height: 22,

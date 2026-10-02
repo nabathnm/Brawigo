@@ -49,10 +49,12 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
   @override
   void initState() {
     super.initState();
-    _nameController =
-        TextEditingController(text: widget.product['product_name']?.toString() ?? '');
-    _descController =
-        TextEditingController(text: widget.product['description']?.toString() ?? '');
+    _nameController = TextEditingController(
+      text: widget.product['product_name']?.toString() ?? '',
+    );
+    _descController = TextEditingController(
+      text: widget.product['description']?.toString() ?? '',
+    );
 
     final priceVal = widget.product['price'];
     _priceController = TextEditingController(
@@ -72,18 +74,26 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
 
   Future<void> _fetchCategories() async {
     try {
-      final response = await Supabase.instance.client.from('categories').select();
+      final response = await Supabase.instance.client
+          .from('categories')
+          .select();
       if (mounted) {
         setState(() {
           _categories = List<Map<String, dynamic>>.from(response);
           _isLoadingCategories = false;
           if (_selectedCategory != null &&
-              !_categories.any((c) => c['id'].toString() == _selectedCategory)) {
-            final catName = widget.product['category_name']?.toString().toLowerCase();
+              !_categories.any(
+                (c) => c['id'].toString() == _selectedCategory,
+              )) {
+            final catName = widget.product['category_name']
+                ?.toString()
+                .toLowerCase();
             final matched = _categories
                 .where((c) => c['name'].toString().toLowerCase() == catName)
                 .firstOrNull;
-            _selectedCategory = matched != null ? matched['id'].toString() : null;
+            _selectedCategory = matched != null
+                ? matched['id'].toString()
+                : null;
           }
         });
       }
@@ -112,15 +122,14 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
     }
   }
 
-  int get _totalImageCount =>
-      _existingImages.length + _newImages.length;
+  int get _totalImageCount => _existingImages.length + _newImages.length;
 
   Future<void> _pickImages() async {
     final remaining = _maxImages - _totalImageCount;
     if (remaining <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maksimal 10 foto.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Maksimal 10 foto.')));
       return;
     }
 
@@ -137,7 +146,8 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Hanya ${toAdd.length} foto yang ditambahkan (batas 10 foto).'),
+              'Hanya ${toAdd.length} foto yang ditambahkan (batas 10 foto).',
+            ),
           ),
         );
       }
@@ -164,22 +174,25 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
       final name = _nameController.text.trim();
       final desc = _descController.text.trim();
       final price =
-          double.tryParse(_priceController.text.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
+          double.tryParse(
+            _priceController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+          ) ??
+          0.0;
       final stock = int.tryParse(_stockController.text.trim());
 
       context.read<MarketplaceBloc>().add(
-            UpdateProduct(
-              id: widget.product['id'].toString(),
-              name: name,
-              description: desc,
-              price: price,
-              stock: stock,
-              categoryId: _selectedCategory,
-              newImages: _newImages,
-              imageIdsToDelete: _imageIdsToDelete,
-              imagePathsToDelete: _imagePathsToDelete,
-            ),
-          );
+        UpdateProduct(
+          id: widget.product['id'].toString(),
+          name: name,
+          description: desc,
+          price: price,
+          stock: stock,
+          categoryId: _selectedCategory,
+          newImages: _newImages,
+          imageIdsToDelete: _imageIdsToDelete,
+          imagePathsToDelete: _imagePathsToDelete,
+        ),
+      );
     }
   }
 
@@ -208,7 +221,10 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
             if (required)
               const TextSpan(
                 text: ' *',
-                style: TextStyle(color: Color(0xFFFF4444), fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Color(0xFFFF4444),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
           ],
         ),
@@ -271,7 +287,10 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
               errorBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 18,
+                vertical: 16,
+              ),
             ),
           ),
         ),
@@ -321,132 +340,139 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
         child: _isLoadingImages
             ? const Center(child: CircularProgressIndicator())
             : isEmpty
-                ? GestureDetector(
-                    onTap: _pickImages,
-                    behavior: HitTestBehavior.opaque,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 56,
-                          height: 56,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE8F1FA),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Icon(
-                            Icons.camera_alt_rounded,
-                            color: Color(0xFF3873B2),
-                            size: 28,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        const Text(
-                          "Ketuk untuk unggah foto",
-                          style: TextStyle(
-                            color: Color(0xFF516A86),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          "Maks. 10 foto · JPG, PNG · max 5 MB",
-                          style: TextStyle(
-                            color: Color(0xFF8C9AA8),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+            ? GestureDetector(
+                onTap: _pickImages,
+                behavior: HitTestBehavior.opaque,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F1FA),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt_rounded,
+                        color: Color(0xFF3873B2),
+                        size: 28,
+                      ),
                     ),
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        height: 100,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          children: [
-                            // Gambar yang sudah ada di DB
-                            ..._existingImages.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final img = entry.value;
-                              return _buildImageThumb(
-                                child: Image.network(
-                                  img['image_url'] ?? '',
-                                  fit: BoxFit.cover,
-                                  width: 90,
-                                  height: 90,
-                                  errorBuilder: (_, __, ___) => const Icon(
-                                    Icons.broken_image,
-                                    color: Colors.grey,
+                    const SizedBox(height: 14),
+                    const Text(
+                      "Ketuk untuk unggah foto",
+                      style: TextStyle(
+                        color: Color(0xFF516A86),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      "Maks. 10 foto · JPG, PNG · max 5 MB",
+                      style: TextStyle(color: Color(0xFF8C9AA8), fontSize: 12),
+                    ),
+                  ],
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 100,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        // Gambar yang sudah ada di DB
+                        ..._existingImages.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final img = entry.value;
+                          return _buildImageThumb(
+                            child: Image.network(
+                              img['image_url'] ?? '',
+                              fit: BoxFit.cover,
+                              width: 90,
+                              height: 90,
+                              errorBuilder: (_, __, ___) => const Icon(
+                                Icons.broken_image,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            onDelete: () => _removeExistingImage(index),
+                          );
+                        }),
+                        // Gambar baru yang dipilih (belum diupload)
+                        ..._newImages.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final xfile = entry.value;
+                          return _buildImageThumb(
+                            child: kIsWeb
+                                ? Image.network(
+                                    xfile.path,
+                                    fit: BoxFit.cover,
+                                    width: 90,
+                                    height: 90,
+                                  )
+                                : Image.file(
+                                    File(xfile.path),
+                                    fit: BoxFit.cover,
+                                    width: 90,
+                                    height: 90,
                                   ),
-                                ),
-                                onDelete: () => _removeExistingImage(index),
-                              );
-                            }),
-                            // Gambar baru yang dipilih (belum diupload)
-                            ..._newImages.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final xfile = entry.value;
-                              return _buildImageThumb(
-                                child: kIsWeb
-                                    ? Image.network(xfile.path,
-                                        fit: BoxFit.cover, width: 90, height: 90)
-                                    : Image.file(File(xfile.path),
-                                        fit: BoxFit.cover, width: 90, height: 90),
-                                onDelete: () => _removeNewImage(index),
-                                isNew: true,
-                              );
-                            }),
-                            // Tombol Tambah (tampil jika belum max)
-                            if (_totalImageCount < _maxImages)
-                              GestureDetector(
-                                onTap: _pickImages,
-                                child: Container(
-                                  width: 90,
-                                  height: 90,
-                                  margin: const EdgeInsets.only(right: 10),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE8F1FA),
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(color: const Color(0xFFC4D7EC)),
-                                  ),
-                                  child: const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.add_photo_alternate_rounded,
-                                        color: Color(0xFF3873B2),
-                                        size: 26,
-                                      ),
-                                      SizedBox(height: 6),
-                                      Text(
-                                        "Tambah",
-                                        style: TextStyle(
-                                          color: Color(0xFF516A86),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                            onDelete: () => _removeNewImage(index),
+                            isNew: true,
+                          );
+                        }),
+                        // Tombol Tambah (tampil jika belum max)
+                        if (_totalImageCount < _maxImages)
+                          GestureDetector(
+                            onTap: _pickImages,
+                            child: Container(
+                              width: 90,
+                              height: 90,
+                              margin: const EdgeInsets.only(right: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE8F1FA),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFFC4D7EC),
                                 ),
                               ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        "${_totalImageCount}/$_maxImages foto · JPG, PNG · max 5 MB",
-                        style: const TextStyle(
-                          color: Color(0xFF8C9AA8),
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
+                              child: const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.add_photo_alternate_rounded,
+                                    color: Color(0xFF3873B2),
+                                    size: 26,
+                                  ),
+                                  SizedBox(height: 6),
+                                  Text(
+                                    "Tambah",
+                                    style: TextStyle(
+                                      color: Color(0xFF516A86),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "${_totalImageCount}/$_maxImages foto · JPG, PNG · max 5 MB",
+                    style: const TextStyle(
+                      color: Color(0xFF8C9AA8),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
@@ -481,7 +507,11 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
               ),
               child: const Text(
                 'Baru',
-                style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -498,7 +528,11 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
                 color: Color(0xFFE53935),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.delete_rounded, color: Colors.white, size: 14),
+              child: const Icon(
+                Icons.delete_rounded,
+                color: Colors.white,
+                size: 14,
+              ),
             ),
           ),
         ),
@@ -532,7 +566,11 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
         items: items,
         onChanged: onChanged,
         validator: validator,
-        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF15243C), size: 26),
+        icon: const Icon(
+          Icons.keyboard_arrow_down_rounded,
+          color: Color(0xFF15243C),
+          size: 26,
+        ),
         decoration: const InputDecoration(
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
@@ -540,7 +578,10 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
           errorBorder: InputBorder.none,
           contentPadding: EdgeInsets.zero,
         ),
-        hint: Text(hintText, style: const TextStyle(color: Color(0xFF8C9AA8), fontSize: 15)),
+        hint: Text(
+          hintText,
+          style: const TextStyle(color: Color(0xFF8C9AA8), fontSize: 15),
+        ),
         style: const TextStyle(
           fontSize: 15,
           color: Color(0xFF15243C),
@@ -656,8 +697,10 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
                   // --- Form ---
                   Expanded(
                     child: SingleChildScrollView(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20.0,
+                        vertical: 8.0,
+                      ),
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -673,8 +716,8 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
                                   "${_nameController.text.length}/100",
                               validator: (value) =>
                                   value == null || value.isEmpty
-                                      ? 'Nama produk tidak boleh kosong'
-                                      : null,
+                                  ? 'Nama produk tidak boleh kosong'
+                                  : null,
                             ),
 
                             // 2. Foto Produk
@@ -692,7 +735,8 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
                                 if (value == null || value.isEmpty)
                                   return 'Harga tidak boleh kosong';
                                 final parsed = double.tryParse(
-                                    value.replaceAll(RegExp(r'[^0-9.]'), ''));
+                                  value.replaceAll(RegExp(r'[^0-9.]'), ''),
+                                );
                                 if (parsed == null || parsed <= 0)
                                   return 'Masukkan angka harga yang valid';
                                 return null;
@@ -722,7 +766,8 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
                                     child: Padding(
                                       padding: EdgeInsets.all(12.0),
                                       child: CircularProgressIndicator(
-                                          color: Color(0xFF3873B2)),
+                                        color: Color(0xFF3873B2),
+                                      ),
                                     ),
                                   )
                                 : _buildDropdown<String>(
@@ -734,10 +779,12 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
                                         child: Text(cat['name'] as String),
                                       );
                                     }).toList(),
-                                    onChanged: (value) =>
-                                        setState(() => _selectedCategory = value),
-                                    validator: (value) =>
-                                        value == null ? 'Pilih kategori produk' : null,
+                                    onChanged: (value) => setState(
+                                      () => _selectedCategory = value,
+                                    ),
+                                    validator: (value) => value == null
+                                        ? 'Pilih kategori produk'
+                                        : null,
                                   ),
 
                             // 6. Deskripsi
@@ -764,13 +811,18 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
                                 gradient: const LinearGradient(
-                                  colors: [Color(0xFF4580C2), Color(0xFF163C66)],
+                                  colors: [
+                                    Color(0xFF4580C2),
+                                    Color(0xFF163C66),
+                                  ],
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF2B5F9E).withAlpha(60),
+                                    color: const Color(
+                                      0xFF2B5F9E,
+                                    ).withAlpha(60),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),

@@ -19,6 +19,7 @@ class CreateOrder extends OrderEvent {
   final String productId;
   final int quantity;
   final String paymentMethod;
+  final String pickupMethod;
   final String meetupLocation;
   final String meetupTime;
 
@@ -26,6 +27,7 @@ class CreateOrder extends OrderEvent {
     required this.productId,
     required this.quantity,
     required this.paymentMethod,
+    required this.pickupMethod,
     required this.meetupLocation,
     required this.meetupTime,
   });

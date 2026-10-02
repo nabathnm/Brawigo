@@ -71,7 +71,9 @@ class _HeaderState extends State<Header> {
                     : null,
                 child: (_photoUrl == null || _photoUrl!.isEmpty)
                     ? Text(
-                        _displayName.isNotEmpty ? _displayName[0].toUpperCase() : 'U',
+                        _displayName.isNotEmpty
+                            ? _displayName[0].toUpperCase()
+                            : 'U',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -88,16 +90,13 @@ class _HeaderState extends State<Header> {
               children: [
                 const Text(
                   "Selamat Datang,",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF64748B),
-                  ),
+                  style: TextStyle(fontSize: 16, color: BrawigoColors.blue950),
                 ),
                 Text(
                   _displayName,
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                     color: BrawigoColors.primary950,
                   ),
                   maxLines: 1,

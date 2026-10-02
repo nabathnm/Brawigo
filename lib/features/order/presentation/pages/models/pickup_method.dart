@@ -1,20 +1,30 @@
-class PickupMethod {
+enum PickupMethod { cod, selfPickup, instantCourier }
+
+class PickupMethodItem {
+  final PickupMethod type;
   final String title;
   final String description;
 
-  const PickupMethod({required this.title, required this.description});
+  const PickupMethodItem({
+    required this.type,
+    required this.title,
+    required this.description,
+  });
 }
 
-const pickupMethods = [
-  PickupMethod(
+const List<PickupMethodItem> pickupMethods = [
+  PickupMethodItem(
+    type: PickupMethod.cod,
     title: 'Cash on Delivery (COD)',
     description: 'Bertemu dengan penjual di sekitar area UB.',
   ),
-  PickupMethod(
+  PickupMethodItem(
+    type: PickupMethod.selfPickup,
     title: 'Self Pick-Up',
     description: 'Ambil barang langsung dari penjual.',
   ),
-  PickupMethod(
+  PickupMethodItem(
+    type: PickupMethod.instantCourier,
     title: 'Kurir Instan',
     description: 'Barang dikirim menggunakan kurir instan.',
   ),

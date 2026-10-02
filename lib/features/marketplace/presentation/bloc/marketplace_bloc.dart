@@ -37,9 +37,11 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
   Future<void> _onLoadProducts(LoadProducts event, Emitter<MarketplaceState> emit) async {
     emit(MarketplaceLoading());
     try {
-      // Pastikan Anda sudah membuat tabel bernama 'products' di Supabase
-      final response = await _supabase.from('products').select().order('created_at', ascending: false);
-      
+      final response = await _supabase
+          .from('products')
+          .select()
+          .order('created_at', ascending: false);
+
       final products = List<Map<String, dynamic>>.from(response);
       emit(MarketplaceLoaded(products: products));
     } catch (e) {
@@ -47,7 +49,8 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
     }
   }
 
-  Future<void> _onAddProduct(AddProduct event, Emitter<MarketplaceState> emit) async {
+  Future<void> _onAddProduct(
+      AddProduct event, Emitter<MarketplaceState> emit) async {
     emit(MarketplaceLoading());
     try {
       final user = _supabase.auth.currentUser;
@@ -60,18 +63,18 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
         for (var image in event.images!) {
           final bytes = await image.readAsBytes();
           final fileExt = image.name.split('.').last;
-          // Buat nama unik per file agar tidak tertimpa
           final uniqueId = DateTime.now().microsecondsSinceEpoch;
           final fileName = '$uniqueId.$fileExt';
-          
+
           await _supabase.storage.from('product_images').uploadBinary(
-            fileName, 
-            bytes,
-            fileOptions: FileOptions(contentType: 'image/$fileExt'),
-          );
-          
-          final imageUrl = _supabase.storage.from('product_images').getPublicUrl(fileName);
-          
+                fileName,
+                bytes,
+                fileOptions: FileOptions(contentType: 'image/$fileExt'),
+              );
+
+          final imageUrl =
+              _supabase.storage.from('product_images').getPublicUrl(fileName);
+
           uploadedImagesData.add({
             'url': imageUrl,
             'path': fileName,
@@ -79,7 +82,7 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
         }
       }
 
-      // 2. Insert data ke Database (tabel products) dan ambil ID yang baru dibuat
+      // 2. Insert data ke tabel products
       final productResponse = await _supabase.from('products').insert({
         'product_name': event.name,
         'description': event.description,
@@ -89,12 +92,13 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
         'stock': event.stock,
         'status': 'active',
         'moderation_status': 'pending',
-        if (uploadedImagesData.isNotEmpty) 'thumbnail_url': uploadedImagesData.first['url'],
+        if (uploadedImagesData.isNotEmpty)
+          'thumbnail_url': uploadedImagesData.first['url'],
       }).select('id').single();
 
       final newProductId = productResponse['id'];
 
-      // 3. Insert semua gambar (termasuk thumbnail) ke tabel product_images
+      // 3. Insert semua gambar ke tabel product_images
       if (uploadedImagesData.isNotEmpty) {
         final productImagesToInsert = <Map<String, dynamic>>[];
         for (int i = 0; i < uploadedImagesData.length; i++) {
@@ -115,56 +119,130 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
     }
   }
 
-  Future<void> _onUpdateProduct(UpdateProduct event, Emitter<MarketplaceState> emit) async {
+  Future<void> _onUpdateProduct(
+      UpdateProduct event, Emitter<MarketplaceState> emit) async {
     emit(MarketplaceLoading());
     try {
-      String? imageUrl = event.oldImageUrl;
-
-      // 1. Upload gambar baru jika ada
-      if (event.newImage != null) {
-        final bytes = await event.newImage!.readAsBytes();
-        final fileExt = event.newImage!.name.split('.').last;
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-        
-        await _supabase.storage.from('product_images').uploadBinary(
-          fileName, 
-          bytes,
-          fileOptions: FileOptions(contentType: 'image/$fileExt'),
-        );
-        imageUrl = _supabase.storage.from('product_images').getPublicUrl(fileName);
-        
-        // (Opsional) Logika untuk menghapus gambar lama dari storage di sini jika diinginkan
+      // 1. Hapus gambar yang ditandai dihapus dari Storage
+      for (final path in event.imagePathsToDelete) {
+        if (path.isNotEmpty) {
+          try {
+            await _supabase.storage.from('product_images').remove([path]);
+          } catch (_) {
+            // Abaikan jika gagal (file mungkin sudah tidak ada)
+          }
+        }
       }
 
-      // 2. Update data di Database
+      // 2. Hapus record product_images yang dihapus dari DB
+      if (event.imageIdsToDelete.isNotEmpty) {
+        await _supabase
+            .from('product_images')
+            .delete()
+            .inFilter('id', event.imageIdsToDelete);
+      }
+
+      // 3. Upload gambar-gambar baru & insert ke product_images
+      // Ambil image_order tertinggi yang masih ada
+      final existingImages = await _supabase
+          .from('product_images')
+          .select('image_order')
+          .eq('product_id', event.id)
+          .order('image_order', ascending: false)
+          .limit(1);
+
+      int nextOrder = existingImages.isNotEmpty
+          ? ((existingImages.first['image_order'] as int?) ?? 0) + 1
+          : 1;
+
+      String? firstNewImageUrl;
+
+      for (final xfile in event.newImages) {
+        final bytes = await xfile.readAsBytes();
+        final fileExt = xfile.name.split('.').last.toLowerCase();
+        final fileName =
+            'products/${event.id}/${DateTime.now().millisecondsSinceEpoch}_$nextOrder.$fileExt';
+
+        await _supabase.storage.from('product_images').uploadBinary(
+              fileName,
+              bytes,
+              fileOptions: FileOptions(contentType: 'image/$fileExt'),
+            );
+        final url =
+            _supabase.storage.from('product_images').getPublicUrl(fileName);
+
+        await _supabase.from('product_images').insert({
+          'product_id': event.id,
+          'image_url': url,
+          'image_path': fileName,
+          'image_order': nextOrder,
+        });
+
+        firstNewImageUrl ??= url;
+        nextOrder++;
+      }
+
+      // 4. Tentukan thumbnail_url = gambar pertama (image_order terendah) yang tersisa
+      String? thumbnailUrl;
+      if (firstNewImageUrl != null || event.imageIdsToDelete.isNotEmpty) {
+        final allImages = await _supabase
+            .from('product_images')
+            .select('image_url, image_order')
+            .eq('product_id', event.id)
+            .order('image_order', ascending: true)
+            .limit(1);
+        thumbnailUrl =
+            allImages.isNotEmpty ? allImages.first['image_url'] as String? : null;
+      }
+
+      // 5. Update data produk di tabel products
       await _supabase.from('products').update({
         'product_name': event.name,
         'description': event.description,
         'price': event.price,
-        if (imageUrl != null) 'thumbnail_url': imageUrl,
+        if (event.stock != null) 'stock': event.stock,
+        if (event.categoryId != null) 'category_id': event.categoryId,
+        if (event.condition != null) 'condition': event.condition,
+        if (event.pickupLocation != null) 'pickup_location': event.pickupLocation,
+        if (thumbnailUrl != null) 'thumbnail_url': thumbnailUrl,
       }).eq('id', event.id);
 
-      // 3. Muat ulang produk
+      // 6. Muat ulang produk
       add(LoadProducts());
     } catch (e) {
       emit(MarketplaceError(message: 'Gagal mengubah produk: ${e.toString()}'));
     }
   }
 
-  Future<void> _onDeleteProduct(DeleteProduct event, Emitter<MarketplaceState> emit) async {
+  Future<void> _onDeleteProduct(
+      DeleteProduct event, Emitter<MarketplaceState> emit) async {
     emit(MarketplaceLoading());
     try {
-      // 1. Hapus gambar terkait dari Storage (jika ada)
+      // 1. Hapus semua gambar di product_images dari Storage
+      try {
+        final images = await _supabase
+            .from('product_images')
+            .select('image_path')
+            .eq('product_id', event.id);
+        for (final img in images) {
+          final path = img['image_path']?.toString() ?? '';
+          if (path.isNotEmpty) {
+            try {
+              await _supabase.storage.from('product_images').remove([path]);
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+
+      // Fallback: coba hapus thumbnail dari URL lama jika ada
       if (event.imageUrl != null && event.imageUrl!.isNotEmpty) {
         try {
           final fileName = event.imageUrl!.split('/').last;
           await _supabase.storage.from('product_images').remove([fileName]);
-        } catch (_) {
-          // Abaikan jika gagal hapus file dari storage (misal: file sudah dihapus atau tidak ditemukan)
-        }
+        } catch (_) {}
       }
 
-      // 2. Hapus data dari Database
+      // 2. Hapus data dari Database (product_images terhapus via cascade jika ada)
       await _supabase.from('products').delete().eq('id', event.id);
 
       // 3. Muat ulang produk

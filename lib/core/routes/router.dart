@@ -15,6 +15,8 @@ import '../../features/auth/presentation/pages/onboarding_success_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/buyer_product_detail_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/buyer_search_page.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation : '/splash',

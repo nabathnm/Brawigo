@@ -7,8 +7,13 @@ import 'package:brawigo/features/marketplace/presentation/pages/update_product_p
 
 class ProductDetailPage extends StatefulWidget {
   final Map<String, dynamic> product;
+  final bool isPreview;
 
-  const ProductDetailPage({super.key, required this.product});
+  const ProductDetailPage({
+    super.key,
+    required this.product,
+    this.isPreview = false,
+  });
 
   @override
   State<ProductDetailPage> createState() => _ProductDetailPageState();
@@ -18,11 +23,56 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   final _supabase = Supabase.instance.client;
   List<String> _images = [];
   bool _isLoadingImages = true;
+  int _currentImageIndex = 0;
+  bool _isDescriptionExpanded = false;
+  final PageController _pageController = PageController();
+
+  String _formatCurrency(dynamic amount) {
+    final int value = (amount as num?)?.toInt() ?? 0;
+    String valStr = value.toString();
+    String result = '';
+    int count = 0;
+    for (int i = valStr.length - 1; i >= 0; i--) {
+      if (count != 0 && count % 3 == 0) {
+        result = '.$result';
+      }
+      result = valStr[i] + result;
+      count++;
+    }
+    return result;
+  }
+
+  Widget _buildSellerStat(String val, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          val,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2E659A),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF515151)),
+        ),
+      ],
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     _fetchImages();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchImages() async {
@@ -93,34 +143,19 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   Widget build(BuildContext context) {
     final product = widget.product;
     final currentUserId = _supabase.auth.currentUser?.id;
-    final isSeller = product['seller_id'] == currentUserId;
+    final bool isSeller =
+        (product['seller_id'] == currentUserId) && !widget.isPreview;
+    final dynamic priceVal = product['price'] ?? 0;
+    final String formattedPrice = _formatCurrency(priceVal);
+    final String categoryName =
+        product['category_name']?.toString() ?? 'Alat Elektronik';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Detail Produk"),
-        actions: [
-          if (isSeller)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => UpdateProductPage(product: product),
-                  ),
-                );
-              },
-            ),
-          if (isSeller)
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: _confirmDelete,
-            ),
-        ],
-      ),
-      body: SingleChildScrollView(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        top: true,
+        bottom: false,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Area Gambar
             SizedBox(
@@ -205,19 +240,39 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: isSeller
-          ? null // Seller tidak butuh tombol beli
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor: Colors.white,
+
+            // Bottom Action Button ("Lihat Tampilan Asli" / "Hubungi Penjual")
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, -3),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Container(
+                  width: double.infinity,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF3873b2), Color(0xFF244c80)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF244c80).withOpacity(0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -235,6 +290,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
     );
   }
 }

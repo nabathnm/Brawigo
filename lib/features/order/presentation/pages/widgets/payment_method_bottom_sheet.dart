@@ -1,7 +1,6 @@
 import 'package:brawigo/features/order/presentation/pages/models/payment_method.dart';
 import 'package:flutter/material.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
-import '../models/payment_method.dart';
 
 class PaymentMethodBottomSheet extends StatefulWidget {
   const PaymentMethodBottomSheet({super.key});

@@ -13,7 +13,11 @@ class _BuyerOrderHistoryPageState extends State<BuyerOrderHistoryPage> {
   final _supabase = Supabase.instance.client;
   List<Map<String, dynamic>> _orders = [];
   bool _isLoading = true;
-  final _currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  final _currencyFormat = NumberFormat.currency(
+    locale: 'id_ID',
+    symbol: 'Rp ',
+    decimalDigits: 0,
+  );
 
   @override
   void initState() {
@@ -49,7 +53,9 @@ class _BuyerOrderHistoryPageState extends State<BuyerOrderHistoryPage> {
   String _formatDate(String? isoTime) {
     if (isoTime == null) return '';
     try {
-      return DateFormat('dd MMM yyyy, HH:mm').format(DateTime.parse(isoTime).toLocal());
+      return DateFormat(
+        'dd MMM yyyy, HH:mm',
+      ).format(DateTime.parse(isoTime).toLocal());
     } catch (_) {
       return '';
     }
@@ -81,11 +87,7 @@ class _BuyerOrderHistoryPageState extends State<BuyerOrderHistoryPage> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             stops: [0.0, 0.3, 1.0],
-            colors: [
-              Color(0xFFB8CEE8),
-              Color(0xFFD6E4F0),
-              Color(0xFFF0F5FB),
-            ],
+            colors: [Color(0xFFB8CEE8), Color(0xFFD6E4F0), Color(0xFFF0F5FB)],
           ),
         ),
         child: SafeArea(
@@ -107,7 +109,10 @@ class _BuyerOrderHistoryPageState extends State<BuyerOrderHistoryPage> {
 
               // Filter & Urutkan Chips
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 4,
+                ),
                 child: Row(
                   children: [
                     _buildChip(Icons.filter_list_rounded, 'Filter'),
@@ -123,160 +128,184 @@ class _BuyerOrderHistoryPageState extends State<BuyerOrderHistoryPage> {
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _orders.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.receipt_long_rounded,
-                                    size: 72, color: Colors.grey.shade400),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  "Belum ada riwayat transaksi",
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                ),
-                              ],
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.receipt_long_rounded,
+                              size: 72,
+                              color: Colors.grey.shade400,
                             ),
-                          )
-                        : RefreshIndicator(
-                            onRefresh: _fetchOrders,
-                            child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                              itemCount: _orders.length,
-                              itemBuilder: (context, index) {
-                                final order = _orders[index];
-                                final productName = order['product_name_snapshot'] ?? 'Produk';
-                                final price = order['total_amount'] != null
-                                    ? _currencyFormat.format(order['total_amount'])
-                                    : (order['product_price_snapshot'] != null
-                                        ? _currencyFormat.format(order['product_price_snapshot'])
-                                        : 'Rp 0');
-                                final thumbnailUrl = order['thumbnail_url_snapshot'] ?? '';
-                                final qty = order['quantity'] ?? 1;
-                                final status = order['order_status'] ?? order['status'] ?? 'pending';
-                                final timeStr = _formatDate(order['created_at']);
+                            const SizedBox(height: 16),
+                            const Text(
+                              "Belum ada riwayat transaksi",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        onRefresh: _fetchOrders,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                          itemCount: _orders.length,
+                          itemBuilder: (context, index) {
+                            final order = _orders[index];
+                            final productName =
+                                order['product_name_snapshot'] ?? 'Produk';
+                            final price = order['total_amount'] != null
+                                ? _currencyFormat.format(order['total_amount'])
+                                : (order['product_price_snapshot'] != null
+                                      ? _currencyFormat.format(
+                                          order['product_price_snapshot'],
+                                        )
+                                      : 'Rp 0');
+                            final thumbnailUrl =
+                                order['thumbnail_url_snapshot'] ?? '';
+                            final qty = order['quantity'] ?? 1;
+                            final status =
+                                order['order_status'] ??
+                                order['status'] ??
+                                'pending';
+                            final timeStr = _formatDate(order['created_at']);
 
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 14),
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.05),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 14),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Status & Date Row
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      // Status & Date Row
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            timeStr,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              color: Color(0xFF94A3B8),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 10, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: _getStatusColor(status).withValues(alpha: 0.12),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              status.toUpperCase(),
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.bold,
-                                                color: _getStatusColor(status),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                      Text(
+                                        timeStr,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Color(0xFF94A3B8),
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
-                                      const Divider(height: 18),
-                                      // Product Row
-                                      Row(
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius: BorderRadius.circular(10),
-                                            child: thumbnailUrl.isNotEmpty
-                                                ? Image.network(
-                                                    thumbnailUrl,
-                                                    width: 56,
-                                                    height: 56,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (context, error, stackTrace) => _placeholderImage(),
-                                                  )
-                                                : _placeholderImage(),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _getStatusColor(
+                                            status,
+                                          ).withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  productName,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFF15243C),
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  '$qty barang',
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: Color(0xFF64748B),
-                                                  ),
-                                                ),
-                                              ],
+                                        ),
+                                        child: Text(
+                                          status.toUpperCase(),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: _getStatusColor(status),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Divider(height: 18),
+                                  // Product Row
+                                  Row(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: thumbnailUrl.isNotEmpty
+                                            ? Image.network(
+                                                thumbnailUrl,
+                                                width: 56,
+                                                height: 56,
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (
+                                                      context,
+                                                      error,
+                                                      stackTrace,
+                                                    ) => _placeholderImage(),
+                                              )
+                                            : _placeholderImage(),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              productName,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF15243C),
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '$qty barang',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xFF64748B),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          const Text(
+                                            'Total Belanja',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Color(0xFF94A3B8),
                                             ),
                                           ),
-                                          Column(
-                                            crossAxisAlignment: CrossAxisAlignment.end,
-                                            children: [
-                                              const Text(
-                                                'Total Belanja',
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  color: Color(0xFF94A3B8),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                price,
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: Color(0xFF2B5F9E),
-                                                ),
-                                              ),
-                                            ],
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            price,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w800,
+                                              color: Color(0xFF2B5F9E),
+                                            ),
                                           ),
                                         ],
                                       ),
                                     ],
                                   ),
-                                );
-                              },
-                            ),
-                          ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
               ),
             ],
           ),
@@ -323,7 +352,11 @@ class _BuyerOrderHistoryPageState extends State<BuyerOrderHistoryPage> {
       width: 56,
       height: 56,
       color: Colors.grey.shade200,
-      child: const Icon(Icons.shopping_bag_outlined, color: Colors.grey, size: 24),
+      child: const Icon(
+        Icons.shopping_bag_outlined,
+        color: Colors.grey,
+        size: 24,
+      ),
     );
   }
 }

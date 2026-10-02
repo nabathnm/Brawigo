@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/product_detail_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/update_product_page.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_state.dart';
@@ -494,10 +495,8 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => BlocProvider.value(
-                            value: context.read<MarketplaceBloc>(),
-                            child: UpdateProductPage(product: product),
-                          ),
+                          builder: (context) =>
+                              UpdateProductPage(product: product),
                         ),
                       );
                     },

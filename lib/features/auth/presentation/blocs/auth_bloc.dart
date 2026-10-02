@@ -8,6 +8,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final SupabaseClient supabaseClient;
 
   AuthBloc({required this.supabaseClient}) : super(AuthInitial()) {
+    on<LogoutRequested>(_onLogoutRequested);
     on<LoginRequested>((event, emit) async {
       try {
         final response = await supabaseClient.auth.signInWithPassword(
@@ -145,6 +146,19 @@ Future<void> _onProfilePhotoUploadRequested(
       emit(AuthAuthenticated(user: user));
     } catch (e) {
       emit(AuthError(message: 'Gagal mengunggah foto: ${e.toString()}'));
+    }
+  }
+
+  Future<void> _onLogoutRequested(
+    LogoutRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+    try {
+      await supabaseClient.auth.signOut();
+      emit(AuthUnauthenticated());
+    } catch (e) {
+      emit(AuthError(message: 'Gagal logout: ${e.toString()}'));
     }
   }
 }

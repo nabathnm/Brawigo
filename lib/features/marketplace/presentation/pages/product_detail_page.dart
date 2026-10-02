@@ -157,562 +157,87 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
         bottom: false,
         child: Column(
           children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Area Gambar + Overlay Tombol & Badge
-                    // NotificationListener menghentikan ScrollNotification dari PageView
-                    // agar tidak diteruskan ke SingleChildScrollView (yang vertikal),
-                    // sehingga gesture horizontal milik PageView tidak tercuri.
-                    NotificationListener<ScrollNotification>(
-                      onNotification: (notification) {
-                        // Blokir notifikasi scroll dari PageView agar tidak
-                        // diterima oleh SingleChildScrollView di atasnya.
-                        return notification.depth == 0;
+            // Area Gambar
+            SizedBox(
+              height: 300,
+              child: _isLoadingImages
+                  ? const Center(child: CircularProgressIndicator())
+                  : _images.isNotEmpty
+                  ? PageView.builder(
+                      itemCount: _images.length,
+                      itemBuilder: (context, index) {
+                        return Image.network(
+                          _images[index],
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.broken_image, size: 100),
+                        );
                       },
-                      child: SizedBox(
-                        height: 360,
-                        width: double.infinity,
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: _isLoadingImages
-                                  ? const Center(
-                                      child: CircularProgressIndicator(),
-                                    )
-                                  : _images.isNotEmpty
-                                  ? PageView.builder(
-                                      controller: _pageController,
-                                      physics: const PageScrollPhysics(),
-                                      itemCount: _images.length,
-                                      onPageChanged: (index) {
-                                        setState(() {
-                                          _currentImageIndex = index;
-                                        });
-                                      },
-                                      itemBuilder: (context, index) {
-                                        return Image.network(
-                                          _images[index],
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => Container(
-                                            color: Colors.grey[200],
-                                            child: const Icon(
-                                              Icons.broken_image,
-                                              size: 80,
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Container(
-                                      color: Colors.grey[200],
-                                      child: const Icon(
-                                        Icons.image,
-                                        size: 100,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                            ),
+                    )
+                  : Container(
+                      color: Colors.grey[200],
+                      child: const Icon(
+                        Icons.image,
+                        size: 100,
+                        color: Colors.grey,
+                      ),
+                    ),
+            ),
 
-                          // Top Buttons Overlay (Back, Edit, Delete)
-                          Positioned(
-                            top: 16,
-                            left: 16,
-                            right: 16,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Tombol Kembali
-                                Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.12),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: IconButton(
-                                    padding: EdgeInsets.zero,
-                                    icon: const Icon(
-                                      Icons.arrow_back_ios_new,
-                                      size: 18,
-                                      color: Color(0xFF15243C),
-                                    ),
-                                    onPressed: () => Navigator.pop(context),
-                                  ),
-                                ),
-                                // Tombol Edit & Delete untuk Seller
-                                if (isSeller)
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 42,
-                                        height: 42,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.12,
-                                              ),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: IconButton(
-                                          padding: EdgeInsets.zero,
-                                          icon: const Icon(
-                                            Icons.edit_outlined,
-                                            size: 20,
-                                            color: Color(0xFF1890FF),
-                                          ),
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    BlocProvider.value(
-                                                  value: context.read<MarketplaceBloc>(),
-                                                  child: UpdateProductPage(
-                                                    product: product,
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Container(
-                                        width: 42,
-                                        height: 42,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.12,
-                                              ),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: IconButton(
-                                          padding: EdgeInsets.zero,
-                                          icon: const Icon(
-                                            Icons.delete_outline,
-                                            size: 20,
-                                            color: Color(0xFFFF4D4F),
-                                          ),
-                                          onPressed: _confirmDelete,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product['product_name'] ?? 'Tanpa Nama',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
                           ),
-
-                          // Panah Kiri Navigasi Gambar
-                          if (_images.length > 1 && _currentImageIndex > 0)
-                            Positioned(
-                              left: 12,
-                              top: 0,
-                              bottom: 0,
-                              child: Center(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    _pageController.previousPage(
-                                      duration: const Duration(milliseconds: 300),
-                                      curve: Curves.easeInOut,
-                                    );
-                                  },
-                                  child: Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.4),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.chevron_left_rounded,
-                                      color: Colors.white,
-                                      size: 28,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                          // Panah Kanan Navigasi Gambar
-                          if (_images.length > 1 && _currentImageIndex < _images.length - 1)
-                            Positioned(
-                              right: 12,
-                              top: 0,
-                              bottom: 0,
-                              child: Center(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    _pageController.nextPage(
-                                      duration: const Duration(milliseconds: 300),
-                                      curve: Curves.easeInOut,
-                                    );
-                                  },
-                                  child: Container(
-                                    width: 36,
-                                    height: 36,
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.4),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.chevron_right_rounded,
-                                      color: Colors.white,
-                                      size: 28,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                          // Badge Indikator Halaman Gambar
-                          Positioned(
-                            bottom: 14,
-                            right: 14,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.95),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.08),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Text(
-                                "${_currentImageIndex + 1}/${_images.isEmpty ? 1 : _images.length}",
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF333333),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Rp ${product['price']}",
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "Deskripsi",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    product['description'] ?? 'Tidak ada deskripsi.',
+                    style: const TextStyle(fontSize: 16, height: 1.5),
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.inventory_2_outlined),
+                    title: const Text("Stok"),
+                    trailing: Text(
+                      "${product['stock'] ?? 0}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ),
-
-                    // Area Judul, Kategori & Harga
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            product['product_name'] ?? 'Tanpa Nama',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF1D4A79),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                categoryName,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: Color(0xFF6A7A8A),
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                              Text(
-                                "Rp $formattedPrice",
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF2E659A),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Divider Abu-abu
-                    Container(height: 8, color: const Color(0xFFF4F6F8)),
-
-                    // Area Profil Penjual / Toko
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 46,
-                                height: 46,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const CircleAvatar(
-                                  radius: 23,
-                                  backgroundImage: AssetImage(
-                                    'assets/images/avatar.png',
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      product['seller_name']?.toString() ??
-                                          'John Doe',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF15243C),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    const Text(
-                                      "Aktif 3 jam lalu",
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Color(0xFF6A7A8A),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(
-                                height: 34,
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Fitur Kunjungi Toko segera hadir!',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2E659A),
-                                    foregroundColor: Colors.white,
-                                    elevation: 0,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    "Kunjungi Toko",
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 18),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildSellerStat("12", "Produk"),
-                              _buildSellerStat("4.9", "Penilaian"),
-                              _buildSellerStat("12", "Produk"),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Divider Abu-abu
-                    Container(height: 8, color: const Color(0xFFF4F6F8)),
-
-                    // Area Deskripsi Produk & Spesifikasi
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Deskripsi",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF15243C),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            product['description']?.toString().isNotEmpty ==
-                                    true
-                                ? product['description']
-                                : 'Hadirkan kemudahan memasak dalam satu sentuhan dengan Magic Com. Dilengkapi fitur serbaguna 3-in-1, penanak nasi ini tidak hanya memasak dengan sempurna, tetapi juga dapat mengukus dan menghangatkan makanan. Pilihan cerdas untuk menyajikan hidangan lezat dan pulen setiap hari.',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              height: 1.5,
-                              color: Color(0xFF333333),
-                            ),
-                            maxLines: _isDescriptionExpanded ? null : 4,
-                            overflow: _isDescriptionExpanded
-                                ? TextOverflow.visible
-                                : TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 12),
-                          Center(
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(20),
-                              onTap: () {
-                                setState(() {
-                                  _isDescriptionExpanded =
-                                      !_isDescriptionExpanded;
-                                });
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      _isDescriptionExpanded
-                                          ? "Sembunyikan"
-                                          : "Lihat Selengkapnya",
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        color: Color(0xFF515151),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      _isDescriptionExpanded
-                                          ? Icons.keyboard_arrow_up_rounded
-                                          : Icons.keyboard_arrow_down_rounded,
-                                      size: 20,
-                                      color: const Color(0xFF333333),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Divider(color: Color(0xFFEEEEEE), thickness: 1),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(
-                                    Icons.inventory_2_outlined,
-                                    size: 20,
-                                    color: Color(0xFF6A7A8A),
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    "Stok Tersedia",
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      color: Color(0xFF515151),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                "${product['stock'] ?? 0}",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                  color: Color(0xFF1D4A79),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (product['pickup_location'] != null &&
-                              product['pickup_location']
-                                  .toString()
-                                  .isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.location_on_outlined,
-                                      size: 20,
-                                      color: Color(0xFF6A7A8A),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      "Lokasi Pengambilan",
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        color: Color(0xFF515151),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Flexible(
-                                  child: Text(
-                                    product['pickup_location'].toString(),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                      color: Color(0xFF1D4A79),
-                                    ),
-                                    textAlign: TextAlign.right,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          const SizedBox(height: 16),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
             ),
 
@@ -749,45 +274,18 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                     ],
                   ),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (isSeller) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ProductDetailPage(
-                              product: product,
-                              isPreview: true,
-                            ),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Fitur Beli / Chat Penjual segera hadir!',
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Fitur Beli / Chat Penjual segera hadir!',
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      isSeller
-                          ? 'Lihat Tampilan Asli'
-                          : 'Hubungi Penjual / Beli',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    );
+                  },
+                  child: const Text(
+                    'Hubungi Penjual / Beli',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),

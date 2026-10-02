@@ -17,7 +17,7 @@ void main() async {
   final supabaseUrl = dotenv.env['SUPABASE_API_URL']!;
   final supabaseAnonKey = dotenv.env['SUPABASE_API_KEY']!;
 
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseAnonKey);
 
   runApp(const MyApp());
 }
@@ -27,16 +27,30 @@ class MyApp extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(providers: [BlocProvider<AuthBloc>(create: (context) => AuthBloc(supabaseClient: Supabase.instance.client))],
-     child: MaterialApp.router(
-      title: 'Brawigo',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: BrawigoColors.blue400,
-        scaffoldBackgroundColor: BrawigoColors.blue50,
-        textTheme: GoogleFonts.plusJakartaSansTextTheme(Theme.of(context).textTheme),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthBloc>(
+          create: (context) =>
+              AuthBloc(supabaseClient: Supabase.instance.client),
+        ),
+      ],
+      child: MaterialApp.router(
+        title: 'Brawigo',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primaryColor: BrawigoColors.blue400,
+          scaffoldBackgroundColor: BrawigoColors.blue50,
+          textTheme: GoogleFonts.plusJakartaSansTextTheme(
+            Theme.of(context).textTheme,
+          ),
+          canvasColor: Colors.white,
+          colorScheme: const ColorScheme.light(
+            surface: Colors.white,
+            background: Colors.white,
+          ),
+        ),
+        routerConfig: appRouter,
       ),
-      routerConfig: appRouter,
-     ) );
+    );
   }
 }

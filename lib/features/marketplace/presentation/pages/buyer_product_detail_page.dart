@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart'; 
-import 'package:brawigo/features/chat/presentation/pages/chat_room_page.dart';
-import 'checkout_page.dart';
+import 'package:go_router/go_router.dart';
 
-class BuyerProductDetailPage extends StatefulWidget {
-  final Map<String, String> product;
+class BuyerProductDetailPage extends StatelessWidget {
+  final Map<String, dynamic> product;
 
   const BuyerProductDetailPage({super.key, required this.product});
 
@@ -341,7 +340,7 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product['name'] ?? 'Rice Cooker Mikoya',
+                    product['product_name'] ?? product['name'] ?? 'Rice Cooker Mikoya',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -350,7 +349,7 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    product['price'] ?? 'Rp200.000',
+                    product['price'] != null ? 'Rp ${product['price']}' : 'Rp200.000',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -634,12 +633,10 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CheckoutPage(product: widget.product),
-                        ),
-                      );
+                      final productId = product['id']?.toString() ?? '';
+                      if (productId.isNotEmpty) {
+                        context.push('/checkout/$productId', extra: product);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4A7EBB),

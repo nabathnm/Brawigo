@@ -4,14 +4,14 @@ abstract class MarketplaceEvent {}
 
 class LoadProducts extends MarketplaceEvent {}
 
+class LoadSellerProducts extends MarketplaceEvent {}
+
 class AddProduct extends MarketplaceEvent {
   final String name;
   final String description;
   final double price;
   final int stock;
   final String categoryId;
-  final String condition;
-  final String? pickupLocation;
   final List<XFile>? images;
 
   AddProduct({
@@ -20,8 +20,6 @@ class AddProduct extends MarketplaceEvent {
     required this.price,
     required this.stock,
     required this.categoryId,
-    required this.condition,
-    this.pickupLocation,
     this.images,
   });
 }

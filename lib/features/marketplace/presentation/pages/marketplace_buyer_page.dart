@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'dart:ui'; 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../bloc/marketplace_bloc.dart';
-import '../bloc/marketplace_event.dart';
 import '../bloc/marketplace_state.dart';
 import 'buyer_product_detail_page.dart';
 import 'buyer_search_page.dart';
@@ -26,17 +25,11 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
   final PageController _pageController = PageController();
   int _currentCarouselIndex = 0;
   Timer? _carouselTimer;
-  String _displayName = 'Pengguna';
-  String? _photoUrl;
 
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MarketplaceBloc>().add(LoadProducts());
-    });
 
     _carouselTimer = Timer.periodic(const Duration(seconds: 7), (Timer timer) {
       if (_currentCarouselIndex < 2) {
@@ -68,37 +61,34 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
       body: SafeArea(
         child: BlocBuilder<MarketplaceBloc, MarketplaceState>(
           builder: (context, state) {
-            if (state is MarketplaceLoading) {
-              return const Center(child: CircularProgressIndicator(color: BrawigoColors.blue600));
-            } else if (state is MarketplaceError) {
-              return Center(child: Text(state.message));
-            } else if (state is MarketplaceLoaded) {
-              final products = state.products;
-              final terbaru = products.toList();
-              final populer = products.length > 3 ? products.sublist(0, 3) : products.toList();
-
-              return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(context),
-                    _buildSearchBar(),
-                    _buildCarousel(),
-                    _buildSectionTitle('Produk Terbaru'),
-                    _buildHorizontalProductList(terbaru),
-                    _buildSectionTitle('Produk Populer'),
-                    _buildHorizontalProductList(populer),
-                    const SizedBox(height: 30),
-                  ],
-                ),
-              );
+            List<Map<String, dynamic>> products = [];
+            if (state is MarketplaceLoaded) {
+              products = state.products;
             }
-            return const SizedBox.shrink();
+
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context),
+                  _buildSearchBar(),
+                  _buildCarousel(),
+                  _buildSectionTitle('Produk Terbaru'),
+                  state is MarketplaceLoading
+                      ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                      : _buildHorizontalProductList(products),
+                  _buildSectionTitle('Produk Populer'),
+                  state is MarketplaceLoading
+                      ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                      : _buildHorizontalProductList(products),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            );
           },
         ),
       ),
-      bottomNavigationBar: widget.hideBottomNav ? null : _buildBottomNavBar(),
     );
   }
 
@@ -408,22 +398,13 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
   }
 
   Widget _buildHorizontalProductList(List<Map<String, dynamic>> products) {
-    if (products.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        child: Text(
-          "Belum ada produk tersedia.",
-          style: TextStyle(color: Colors.grey, fontSize: 14),
-        ),
-      );
-    }
     return SizedBox(
       height: 250,
       child: ScrollConfiguration(
         behavior: ScrollConfiguration.of(context).copyWith(
           dragDevices: {
             PointerDeviceKind.touch,
-            PointerDeviceKind.mouse, 
+            PointerDeviceKind.mouse,
             PointerDeviceKind.trackpad,
           },
         ),
@@ -435,26 +416,19 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
           separatorBuilder: (context, index) => const SizedBox(width: 16),
           itemBuilder: (context, index) {
             final product = products[index];
-            final imageUrl = product['thumbnail_url'] as String?;
-            final priceRaw = product['price']?.toString() ?? '0';
-            final priceFormatted = 'Rp $priceRaw';
-            final productName = product['product_name'] ?? 'Produk Brawigo';
-            
-            // Konversi ke Map<String, String> agar tidak error di BuyerProductDetailPage yang ada saat ini
-            final Map<String, String> stringProduct = {
-              'id': product['id']?.toString() ?? '',
-              'name': productName,
-              'category': 'Kategori', // belum ada join query untuk kategori
-              'price': priceFormatted,
-              'image_url': imageUrl ?? '',
-              'description': product['description']?.toString() ?? '',
-              'seller_id': product['seller_id']?.toString() ?? '',
-            };
+            final String? imageUrl = product['thumbnail_url'] as String?;
+            final String name = product['product_name'] as String? ?? 'Tanpa Nama';
+            final String price = (product['price'] as num?)?.toString() ?? '0';
+            final String category = product['category_name'] as String? ?? 'Alat';
 
             return GestureDetector(
               onTap: () {
-                // Navigasi ke halaman detail saat diklik menggunakan GoRouter
-                context.push('/buyer-product-detail', extra: stringProduct);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => BuyerProductDetailPage(product: product),
+                  ),
+                );
               },
               child: Container(
                 width: 155,
@@ -463,77 +437,67 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.grey.shade200, width: 1),
                 ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(15),
-                    ),
-                    child: (imageUrl != null && imageUrl.isNotEmpty) 
-                      ? Image.network(
-                          imageUrl,
-                          height: 145,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(15),
+                      ),
+                      child: imageUrl != null && imageUrl.isNotEmpty
+                          ? Image.network(
+                              imageUrl,
+                              height: 145,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            )
+                          : Container(
                               height: 145,
                               width: double.infinity,
                               color: Colors.grey.shade200,
-                              child: const Icon(Icons.broken_image, color: Colors.grey),
-                            );
-                          },
-                        )
-                      : Container(
-                          height: 145,
-                          width: double.infinity,
-                          color: Colors.grey.shade200,
-                          child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                              child: const Icon(Icons.image_outlined, color: Colors.grey),
+                            ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: BrawigoColors.blue600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              category,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              "Rp $price",
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: BrawigoColors.blue950,
+                              ),
+                            ),
+                          ],
                         ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            productName,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: BrawigoColors
-                                  .blue600, 
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Kategori',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          const Spacer(),
-                          Text(
-                            priceFormatted,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: BrawigoColors
-                                  .blue950, 
-                            ),
-                          ),
-                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
               ),
             );
           },
@@ -542,90 +506,5 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
     );
   }
 
-  Widget _buildBottomNavBar() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(
-                icon: Icons.home_rounded,
-                label: 'Beranda',
-                isActive: true,
-                onTap: () {},
-              ),
-              _buildNavItem(
-                icon: Icons.chat_bubble_rounded,
-                label: 'Pesan',
-                isActive: false,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ChatListPage()),
-                  );
-                },
-              ),
-              _buildNavItem(
-                icon: Icons.shopping_cart_rounded,
-                label: 'Order',
-                isActive: false,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const OrderPage()),
-                  );
-                },
-              ),
-              _buildNavItem(
-                icon: Icons.account_circle_rounded,
-                label: 'Profil',
-                isActive: false,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ProfilePage()),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    VoidCallback? onTap,
-  }) {
-    final Color color = isActive
-        ? BrawigoColors.blue600
-        : const Color(0xFFB0BAC3); 
-    return InkWell(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 26),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

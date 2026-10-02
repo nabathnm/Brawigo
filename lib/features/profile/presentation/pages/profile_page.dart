@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
+import 'package:brawigo/features/auth/presentation/blocs/auth_bloc.dart';
+import 'package:brawigo/features/auth/presentation/blocs/auth_event.dart';
+import 'package:go_router/go_router.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -210,11 +214,11 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: BrawigoColors.blue50,
       appBar: AppBar(
-        title: const Text("Profil Saya", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        title: const Text("Profil Saya", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: BrawigoColors.blue700,
+        foregroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
@@ -230,7 +234,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator(color: BrawigoColors.blue700));
     }
 
     if (_errorMessage != null) {
@@ -242,7 +246,11 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 16),
             Text("Gagal memuat profil: $_errorMessage", textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _fetchProfile, child: const Text("Coba Lagi")),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: BrawigoColors.blue700, foregroundColor: Colors.white),
+              onPressed: _fetchProfile,
+              child: const Text("Coba Lagi"),
+            ),
           ],
         ),
       );
@@ -264,64 +272,35 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Foto Profil dengan Tombol Edit Camera Overlay
-          GestureDetector(
-            onTap: _isUploadingPhoto ? null : _pickAndUpdatePhoto,
-            child: Stack(
-              children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Colors.deepPurple.shade100,
-                  backgroundImage: photoUrl != null && photoUrl.isNotEmpty
-                      ? NetworkImage(photoUrl)
-                      : null,
-                  child: photoUrl == null || photoUrl.isEmpty
-                      ? Text(
-                          fullName.isNotEmpty ? fullName[0].toUpperCase() : 'U',
-                          style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: Colors.deepPurple),
-                        )
-                      : null,
-                ),
-                if (_isUploadingPhoto)
-                  Positioned.fill(
-                    child: Container(
-                      decoration: const BoxDecoration(color: Colors.black38, shape: BoxShape.circle),
-                      child: const Center(child: CircularProgressIndicator(color: Colors.white)),
-                    ),
-                  ),
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF2B5F9E),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
-                  ),
-                ),
-              ],
-            ),
+          // Foto Profil
+          CircleAvatar(
+            radius: 60,
+            backgroundColor: BrawigoColors.blue200,
+            backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                ? NetworkImage(photoUrl)
+                : null,
+            child: photoUrl == null || photoUrl.isEmpty
+                ? const Icon(Icons.person, size: 60, color: BrawigoColors.blue800)
+                : null,
           ),
           const SizedBox(height: 16),
 
           // Nama & Role
           Text(
             fullName,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: BrawigoColors.blue950),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: role == 'seller' ? Colors.orange.shade100 : Colors.blue.shade100,
+              color: role == 'seller' ? BrawigoColors.yellowLight : BrawigoColors.blue100,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              role == 'seller' ? 'Penjual' : 'Pembeli',
+              role == 'seller' ? 'Penjual (Seller)' : 'Pembeli (Buyer)',
               style: TextStyle(
-                color: role == 'seller' ? Colors.orange.shade800 : Colors.blue.shade800,
+                color: role == 'seller' ? BrawigoColors.yellowDarkActive : BrawigoColors.blue700,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -344,7 +323,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           // Detail Informasi
           Card(
-            elevation: 0,
+            elevation: 1,
             color: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -355,7 +334,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 children: [
                   _buildInfoRow(Icons.alternate_email, "Username", username),
-                  const Divider(),
+                  const Divider(height: 24),
                   _buildInfoRow(Icons.email_outlined, "Email", email),
                 ],
               ),
@@ -390,17 +369,17 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildInfoRow(IconData icon, String title, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey.shade600),
+          Icon(icon, color: BrawigoColors.blue600),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
               const SizedBox(height: 2),
-              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: BrawigoColors.blue950)),
             ],
           ),
         ],
@@ -412,22 +391,26 @@ class _ProfilePageState extends State<ProfilePage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Konfirmasi'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Konfirmasi', style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text('Apakah Anda yakin ingin keluar?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Batal'),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              try {
-                await _supabase.auth.signOut();
-              } catch (_) {}
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              Navigator.pop(dialogContext); // Tutup dialog
+              context.read<AuthBloc>().add(LogoutRequested()); // Dispatch event logout
+              context.go('/login');
             },
-            child: const Text('Keluar', style: TextStyle(color: Colors.white)),
+            child: const Text('Keluar'),
           ),
         ],
       ),

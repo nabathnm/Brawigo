@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
-import '../models/pickup_method.dart';
 
 class NoteInput extends StatelessWidget {
   const NoteInput({super.key});

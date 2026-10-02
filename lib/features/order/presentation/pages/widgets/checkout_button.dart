@@ -1,7 +1,4 @@
-import 'package:brawigo/features/order/presentation/bloc/order_bloc.dart';
-import 'package:brawigo/features/order/presentation/bloc/order_state.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 
 class CheckoutButton extends StatelessWidget {

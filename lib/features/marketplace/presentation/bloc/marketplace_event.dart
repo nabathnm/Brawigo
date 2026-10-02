@@ -29,16 +29,32 @@ class UpdateProduct extends MarketplaceEvent {
   final String name;
   final String description;
   final double price;
-  final XFile? newImage;
-  final String? oldImageUrl;
+  final int? stock;
+  final String? categoryId;
+  final String? condition;
+  final String? pickupLocation;
+
+  /// Gambar-gambar BARU yang akan diupload dan ditambahkan ke product_images
+  final List<XFile> newImages;
+
+  /// image_path dari tabel product_images yang ingin dihapus dari Storage
+  final List<String> imagePathsToDelete;
+
+  /// id dari tabel product_images yang ingin dihapus
+  final List<String> imageIdsToDelete;
 
   UpdateProduct({
     required this.id,
     required this.name,
     required this.description,
     required this.price,
-    this.newImage,
-    this.oldImageUrl,
+    this.stock,
+    this.categoryId,
+    this.condition,
+    this.pickupLocation,
+    this.newImages = const [],
+    this.imagePathsToDelete = const [],
+    this.imageIdsToDelete = const [],
   });
 }
 

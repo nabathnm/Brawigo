@@ -3,14 +3,19 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import '../bloc/marketplace_bloc.dart';
 import '../bloc/marketplace_state.dart';
 import 'buyer_product_detail_page.dart';
 import 'buyer_search_page.dart';
+import 'package:brawigo/features/chat/presentation/pages/chat_list_page.dart';
+import 'order_page.dart';
+import 'package:brawigo/features/profile/presentation/pages/profile_page.dart';
 
 class MarketplaceBuyerPage extends StatefulWidget {
-  const MarketplaceBuyerPage({super.key});
+  final bool hideBottomNav;
+  const MarketplaceBuyerPage({super.key, this.hideBottomNav = false});
 
   @override
   State<MarketplaceBuyerPage> createState() => _MarketplaceBuyerPageState();
@@ -24,6 +29,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
   @override
   void initState() {
     super.initState();
+    _loadUserProfile();
 
     _carouselTimer = Timer.periodic(const Duration(seconds: 7), (Timer timer) {
       if (_currentCarouselIndex < 2) {
@@ -86,6 +92,35 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
     );
   }
 
+  Future<void> _loadUserProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    try {
+      final res = await Supabase.instance.client
+          .from('profiles')
+          .select('full_name, username, profile_photo_url')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (res != null && mounted) {
+        final username = res['username']?.toString().trim();
+        final fullName = res['full_name']?.toString().trim();
+        final photo = res['profile_photo_url']?.toString().trim();
+
+        setState(() {
+          if (username != null && username.isNotEmpty && username != '-') {
+            _displayName = username;
+          } else if (fullName != null && fullName.isNotEmpty) {
+            _displayName = fullName;
+          } else {
+            _displayName = user.email?.split('@').first ?? 'Pengguna';
+          }
+          _photoUrl = photo;
+        });
+      }
+    } catch (_) {}
+  }
+
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
@@ -94,25 +129,40 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
         children: [
           Row(
             children: [
-              const CircleAvatar(
-                radius: 22,
-                backgroundColor: BrawigoColors.blueNormalActive,
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: const Color(0xFF4A7EBB),
+                backgroundImage: (_photoUrl != null && _photoUrl!.isNotEmpty)
+                    ? NetworkImage(_photoUrl!)
+                    : null,
+                child: (_photoUrl == null || _photoUrl!.isEmpty)
+                    ? Text(
+                        _displayName.isNotEmpty ? _displayName[0].toUpperCase() : 'U',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      )
+                    : null,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
+                children: [
+                  const Text(
                     "Selamat Datang,",
                     style: TextStyle(fontSize: 12, color: Color(0xFF4A5568)),
                   ),
                   Text(
-                    "Hassan Nashrallah",
-                    style: TextStyle(
+                    _displayName,
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: BrawigoColors.blue950, 
+                      color: BrawigoColors.blue950,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -187,10 +237,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
         child: TextField(
           readOnly: true, 
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const BuyerSearchPage()),
-            );
+            context.push('/buyer-search');
           },
           decoration: const InputDecoration(
             hintText: 'Cari produk',

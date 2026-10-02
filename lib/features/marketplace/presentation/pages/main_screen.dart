@@ -1,5 +1,7 @@
+import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/marketplace_buyer_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/marketplace_seller_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/add_product_page.dart';
@@ -15,20 +17,27 @@ import 'package:go_router/go_router.dart';
 
 class MainScreen extends StatefulWidget {
   final bool isSeller;
-  const MainScreen({super.key, this.isSeller = false});
+  final int initialIndex;
+
+  const MainScreen({
+    super.key,
+    this.isSeller = false,
+    this.initialIndex = 0,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   late final List<Widget> _pages;
   late final bool _isSeller;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _isSeller = widget.isSeller;
     _pages = [
       _isSeller ? const MarketPlaceSellerPage() : const MarketplaceBuyerPage(),
@@ -66,17 +75,31 @@ class _MainScreenState extends State<MainScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFEAF0F6),
-        body: _pages[_currentIndex],
+        backgroundColor: const Color(0xFFFAFAFA),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFFC8DAEF),
+                Color(0xFFE6EDF8),
+                Color(0xFFFAFAFA),
+              ],
+              stops: [0.0, 0.2, 1.0],
+            ),
+          ),
+          child: _pages[_currentIndex],
+        ),
         bottomNavigationBar: Container(
+          height: 106,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            color: const Color(0xFFFFFFFF),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(12),
-                blurRadius: 16,
-                offset: const Offset(0, -4),
+                color: const Color(0xFF1E2D3D).withValues(alpha: 0.07),
+                blurRadius: 24,
+                offset: const Offset(0, -6),
               ),
             ],
           ),
@@ -109,6 +132,7 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ],
               ),
+              child: _isSeller ? _buildSellerNavRow() : _buildBuyerNavRow(),
             ),
           ),
         ),
@@ -132,20 +156,23 @@ class _MainScreenState extends State<MainScreen> {
           _currentIndex = index;
         });
       },
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 4),
+            icon,
+            const SizedBox(height: 6),
             Text(
               label,
               style: TextStyle(
                 color: color,
                 fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -180,10 +207,10 @@ class _MainScreenState extends State<MainScreen> {
         }
       },
       child: Container(
-        width: 54,
-        height: 54,
-        decoration: BoxDecoration(
-          color: const Color(0xFF2E6399),
+        width: 52,
+        height: 52,
+        decoration: const BoxDecoration(
+          color: BrawigoColors.blue500,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(

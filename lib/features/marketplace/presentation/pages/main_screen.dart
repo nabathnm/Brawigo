@@ -19,11 +19,7 @@ class MainScreen extends StatefulWidget {
   final bool isSeller;
   final int initialIndex;
 
-  const MainScreen({
-    super.key,
-    this.isSeller = false,
-    this.initialIndex = 0,
-  });
+  const MainScreen({super.key, this.isSeller = false, this.initialIndex = 0});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -81,11 +77,7 @@ class _MainScreenState extends State<MainScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFFC8DAEF),
-                Color(0xFFE6EDF8),
-                Color(0xFFFAFAFA),
-              ],
+              colors: [Color(0xFFC8DAEF), Color(0xFFE6EDF8), Color(0xFFFAFAFA)],
               stops: [0.0, 0.2, 1.0],
             ),
           ),
@@ -97,7 +89,7 @@ class _MainScreenState extends State<MainScreen> {
             color: const Color(0xFFFFFFFF),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF1E2D3D).withValues(alpha: 0.07),
+                color: const Color(0xFF1E2D3D).withAlpha(0.07 as int),
                 blurRadius: 24,
                 offset: const Offset(0, -6),
               ),
@@ -132,7 +124,6 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ],
               ),
-              child: _isSeller ? _buildSellerNavRow() : _buildBuyerNavRow(),
             ),
           ),
         ),
@@ -164,7 +155,6 @@ class _MainScreenState extends State<MainScreen> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            icon,
             const SizedBox(height: 6),
             Text(
               label,
@@ -209,7 +199,7 @@ class _MainScreenState extends State<MainScreen> {
       child: Container(
         width: 52,
         height: 52,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: BrawigoColors.blue500,
           shape: BoxShape.circle,
           boxShadow: [

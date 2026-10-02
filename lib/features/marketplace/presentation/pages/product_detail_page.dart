@@ -256,25 +256,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               ),
               child: SafeArea(
                 top: false,
-                child: Container(
-                  width: double.infinity,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF3873b2), Color(0xFF244c80)],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF244c80).withOpacity(0.25),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  onPressed: () {
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text(
@@ -283,9 +267,33 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                       ),
                     );
                   },
-                  child: const Text(
-                    'Hubungi Penjual / Beli',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  child: Container(
+                    width: double.infinity,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF3873b2), Color(0xFF244c80)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF244c80).withOpacity(0.25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Hubungi Penjual / Beli',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),

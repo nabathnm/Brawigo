@@ -1,10 +1,11 @@
+import 'package:brawigo/features/chat/presentation/pages/chat_room_page.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:brawigo/core/utils/constants/brawigo_colors.dart'; 
+import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:go_router/go_router.dart';
 
-class BuyerProductDetailPage extends StatelessWidget {
+class BuyerProductDetailPage extends StatefulWidget {
   final Map<String, dynamic> product;
 
   const BuyerProductDetailPage({super.key, required this.product});
@@ -56,14 +57,18 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
 
     if (currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan login terlebih dahulu untuk memulai chat.')),
+        const SnackBar(
+          content: Text('Silakan login terlebih dahulu untuk memulai chat.'),
+        ),
       );
       return;
     }
 
     if (sellerId.isEmpty || productId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informasi produk/penjual tidak lengkap.')),
+        const SnackBar(
+          content: Text('Informasi produk/penjual tidak lengkap.'),
+        ),
       );
       return;
     }
@@ -119,7 +124,9 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
             conversationId: conversationId,
             otherUserName: sellerName,
             otherUserId: sellerId,
-            productData: widget.product,
+            productData: widget.product.map(
+              (key, value) => MapEntry(key, value?.toString() ?? ''),
+            ),
             sendProductMention: isNew,
           ),
         ),
@@ -141,9 +148,11 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
           .select('image_url')
           .eq('product_id', productId)
           .order('image_order', ascending: true);
-      
-      final List<String> fetchedImages = (response as List).map((e) => e['image_url'] as String).toList();
-      
+
+      final List<String> fetchedImages = (response as List)
+          .map((e) => e['image_url'] as String)
+          .toList();
+
       if (mounted) {
         setState(() {
           if (fetchedImages.isNotEmpty) {
@@ -192,25 +201,28 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                     child: _isLoadingImages
                         ? Container(
                             color: Colors.grey.shade200,
-                            child: const Center(child: CircularProgressIndicator()),
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
                           )
                         : (_images.isNotEmpty)
-                            ? PageView.builder(
-                                controller: _pageController,
-                                physics: const PageScrollPhysics(),
-                                itemCount: _images.length,
-                                onPageChanged: (index) {
-                                  setState(() {
-                                    _currentImageIndex = index;
-                                  });
-                                },
-                                itemBuilder: (context, index) {
-                                  return Image.network(
-                                    _images[index],
-                                    width: double.infinity,
-                                    height: 380,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) => Container(
+                        ? PageView.builder(
+                            controller: _pageController,
+                            physics: const PageScrollPhysics(),
+                            itemCount: _images.length,
+                            onPageChanged: (index) {
+                              setState(() {
+                                _currentImageIndex = index;
+                              });
+                            },
+                            itemBuilder: (context, index) {
+                              return Image.network(
+                                _images[index],
+                                width: double.infinity,
+                                height: 380,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
                                       height: 380,
                                       color: Colors.grey.shade200,
                                       child: const Icon(
@@ -219,13 +231,17 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                                         color: Colors.grey,
                                       ),
                                     ),
-                                  );
-                                },
-                              )
-                            : Container(
-                                color: Colors.grey.shade200,
-                                child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-                              ),
+                              );
+                            },
+                          )
+                        : Container(
+                            color: Colors.grey.shade200,
+                            child: const Icon(
+                              Icons.image_not_supported,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                          ),
                   ),
                   Positioned(
                     top: MediaQuery.of(context).padding.top + 16,
@@ -278,7 +294,8 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                       ),
                     ),
                   // Panah Kanan Navigasi Gambar
-                  if (_images.length > 1 && _currentImageIndex < _images.length - 1)
+                  if (_images.length > 1 &&
+                      _currentImageIndex < _images.length - 1)
                     Positioned(
                       right: 12,
                       top: 0,
@@ -340,16 +357,20 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product['product_name'] ?? product['name'] ?? 'Rice Cooker Mikoya',
+                    product['product_name'] ??
+                        product['name'] ??
+                        'Rice Cooker Mikoya',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF2B5F9E), 
+                      color: Color(0xFF2B5F9E),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    product['price'] != null ? 'Rp ${product['price']}' : 'Rp200.000',
+                    product['price'] != null
+                        ? 'Rp ${product['price']}'
+                        : 'Rp200.000',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -361,7 +382,7 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color:  BrawigoColors.blue50,
+                      color: BrawigoColors.blue50,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey.shade300, width: 1),
                     ),
@@ -373,22 +394,35 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                               child: FutureBuilder(
                                 future: Supabase.instance.client
                                     .from('profiles')
-                                    .select('full_name, username, profile_photo_url')
+                                    .select(
+                                      'full_name, username, profile_photo_url',
+                                    )
                                     .eq('id', product['seller_id'] ?? '')
                                     .maybeSingle(),
                                 builder: (context, snapshot) {
                                   String sellerName = "Memuat...";
                                   String? photoUrl;
-                                  if (snapshot.connectionState == ConnectionState.done) {
-                                    if (snapshot.hasData && snapshot.data != null) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.done) {
+                                    if (snapshot.hasData &&
+                                        snapshot.data != null) {
                                       final p = snapshot.data as Map;
-                                      final username = p['username']?.toString().trim();
-                                      final fullName = p['full_name']?.toString().trim();
-                                      photoUrl = p['profile_photo_url']?.toString().trim();
+                                      final username = p['username']
+                                          ?.toString()
+                                          .trim();
+                                      final fullName = p['full_name']
+                                          ?.toString()
+                                          .trim();
+                                      photoUrl = p['profile_photo_url']
+                                          ?.toString()
+                                          .trim();
 
-                                      if (username != null && username.isNotEmpty && username != '-') {
+                                      if (username != null &&
+                                          username.isNotEmpty &&
+                                          username != '-') {
                                         sellerName = username;
-                                      } else if (fullName != null && fullName.isNotEmpty) {
+                                      } else if (fullName != null &&
+                                          fullName.isNotEmpty) {
                                         sellerName = fullName;
                                       } else {
                                         sellerName = 'Penjual';
@@ -402,13 +436,22 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                                     children: [
                                       CircleAvatar(
                                         radius: 20,
-                                        backgroundColor: const Color(0xFF4A7EBB),
-                                        backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                                        backgroundColor: const Color(
+                                          0xFF4A7EBB,
+                                        ),
+                                        backgroundImage:
+                                            (photoUrl != null &&
+                                                photoUrl.isNotEmpty)
                                             ? NetworkImage(photoUrl)
                                             : null,
-                                        child: (photoUrl == null || photoUrl.isEmpty)
+                                        child:
+                                            (photoUrl == null ||
+                                                photoUrl.isEmpty)
                                             ? Text(
-                                                sellerName.isNotEmpty ? sellerName[0].toUpperCase() : 'P',
+                                                sellerName.isNotEmpty
+                                                    ? sellerName[0]
+                                                          .toUpperCase()
+                                                    : 'P',
                                                 style: const TextStyle(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.bold,
@@ -419,7 +462,8 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               sellerName,
@@ -547,7 +591,8 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    (product['description'] != null && product['description']!.isNotEmpty)
+                    (product['description'] != null &&
+                            product['description']!.isNotEmpty)
                         ? product['description']!
                         : "Tidak ada deskripsi untuk produk ini.",
                     style: const TextStyle(
@@ -555,8 +600,14 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                       height: 1.5,
                       color: Color(0xFF334155),
                     ),
-                    maxLines: _isDescriptionExpanded ? null : (_isLongDescription ? 3 : null),
-                    overflow: _isDescriptionExpanded ? TextOverflow.visible : (_isLongDescription ? TextOverflow.ellipsis : TextOverflow.visible),
+                    maxLines: _isDescriptionExpanded
+                        ? null
+                        : (_isLongDescription ? 3 : null),
+                    overflow: _isDescriptionExpanded
+                        ? TextOverflow.visible
+                        : (_isLongDescription
+                              ? TextOverflow.ellipsis
+                              : TextOverflow.visible),
                   ),
                   if (_isLongDescription) const SizedBox(height: 16),
                   if (_isLongDescription)
@@ -571,7 +622,9 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              _isDescriptionExpanded ? "Tutup Selengkapnya" : "Lihat Selengkapnya",
+                              _isDescriptionExpanded
+                                  ? "Tutup Selengkapnya"
+                                  : "Lihat Selengkapnya",
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -580,7 +633,9 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                             ),
                             const SizedBox(width: 4),
                             Icon(
-                              _isDescriptionExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                              _isDescriptionExpanded
+                                  ? Icons.keyboard_arrow_up_rounded
+                                  : Icons.keyboard_arrow_down_rounded,
                               size: 18,
                               color: const Color(0xFF334155),
                             ),
@@ -608,7 +663,6 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
             child: Row(
               children: [
-
                 Container(
                   width: 48,
                   height: 48,

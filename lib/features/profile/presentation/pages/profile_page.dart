@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
@@ -43,7 +44,10 @@ class _ProfilePageState extends State<ProfilePage> {
           .eq('id', user.id)
           .single();
 
-      final metaRole = user.userMetadata?['role']?.toString().toLowerCase().trim();
+      final metaRole = user.userMetadata?['role']
+          ?.toString()
+          .toLowerCase()
+          .trim();
       if (metaRole != null && metaRole.isNotEmpty) {
         data['role'] = metaRole;
       }
@@ -69,7 +73,10 @@ class _ProfilePageState extends State<ProfilePage> {
     if (user == null) return;
 
     final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+    );
     if (image == null) return;
 
     setState(() => _isUploadingPhoto = true);
@@ -77,31 +84,45 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final bytes = await image.readAsBytes();
       final ext = image.name.split('.').last.toLowerCase();
-      final fileName = 'profiles/${user.id}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+      final fileName =
+          'profiles/${user.id}_${DateTime.now().millisecondsSinceEpoch}.$ext';
 
-      await _supabase.storage.from('product_images').uploadBinary(
+      await _supabase.storage
+          .from('product_images')
+          .uploadBinary(
             fileName,
             bytes,
             fileOptions: FileOptions(contentType: 'image/$ext'),
           );
 
-      final photoUrl = _supabase.storage.from('product_images').getPublicUrl(fileName);
+      final photoUrl = _supabase.storage
+          .from('product_images')
+          .getPublicUrl(fileName);
 
-      await _supabase.from('profiles').update({
-        'profile_photo_url': photoUrl,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', user.id);
+      await _supabase
+          .from('profiles')
+          .update({
+            'profile_photo_url': photoUrl,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', user.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Foto profil berhasil diperbarui!'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Foto profil berhasil diperbarui!'),
+            backgroundColor: Colors.green,
+          ),
         );
         _fetchProfile();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengunggah foto: ${e.toString()}'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Gagal mengunggah foto: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -113,8 +134,12 @@ class _ProfilePageState extends State<ProfilePage> {
     final data = _profileData;
     if (data == null) return;
 
-    final nameController = TextEditingController(text: data['full_name']?.toString() ?? '');
-    final usernameController = TextEditingController(text: data['username']?.toString() ?? '');
+    final nameController = TextEditingController(
+      text: data['full_name']?.toString() ?? '',
+    );
+    final usernameController = TextEditingController(
+      text: data['username']?.toString() ?? '',
+    );
     final formKey = GlobalKey<FormState>();
     bool isSaving = false;
 
@@ -122,8 +147,13 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Edit Profil', style: TextStyle(fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Edit Profil',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: Form(
             key: formKey,
             child: Column(
@@ -136,7 +166,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     prefixIcon: Icon(Icons.person_outline),
                     border: OutlineInputBorder(),
                   ),
-                  validator: (v) => v == null || v.trim().isEmpty ? 'Nama tidak boleh kosong' : null,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Nama tidak boleh kosong'
+                      : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -147,8 +179,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     border: OutlineInputBorder(),
                   ),
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Username tidak boleh kosong';
-                    if (v.trim().length < 3) return 'Username minimal 3 karakter';
+                    if (v == null || v.trim().isEmpty)
+                      return 'Username tidak boleh kosong';
+                    if (v.trim().length < 3)
+                      return 'Username minimal 3 karakter';
                     return null;
                   },
                 ),
@@ -163,7 +197,9 @@ class _ProfilePageState extends State<ProfilePage> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2B5F9E),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               onPressed: isSaving
                   ? null
@@ -174,17 +210,23 @@ class _ProfilePageState extends State<ProfilePage> {
                       try {
                         final user = _supabase.auth.currentUser;
                         if (user != null) {
-                          await _supabase.from('profiles').update({
-                            'full_name': nameController.text.trim(),
-                            'username': usernameController.text.trim(),
-                            'updated_at': DateTime.now().toIso8601String(),
-                          }).eq('id', user.id);
+                          await _supabase
+                              .from('profiles')
+                              .update({
+                                'full_name': nameController.text.trim(),
+                                'username': usernameController.text.trim(),
+                                'updated_at': DateTime.now().toIso8601String(),
+                              })
+                              .eq('id', user.id);
                         }
 
                         if (mounted) {
                           Navigator.pop(dialogContext);
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Profil berhasil diperbarui!'), backgroundColor: Colors.green),
+                            const SnackBar(
+                              content: Text('Profil berhasil diperbarui!'),
+                              backgroundColor: Colors.green,
+                            ),
                           );
                           _fetchProfile();
                         }
@@ -192,7 +234,12 @@ class _ProfilePageState extends State<ProfilePage> {
                         setDialogState(() => isSaving = false);
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Gagal memperbarui: ${e.toString()}'), backgroundColor: Colors.red),
+                            SnackBar(
+                              content: Text(
+                                'Gagal memperbarui: ${e.toString()}',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
                           );
                         }
                       }
@@ -201,7 +248,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
                     )
                   : const Text('Simpan', style: TextStyle(color: Colors.white)),
             ),
@@ -216,7 +266,10 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       backgroundColor: BrawigoColors.blue50,
       appBar: AppBar(
-        title: const Text("Profil Saya", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text(
+          "Profil Saya",
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         backgroundColor: BrawigoColors.blue700,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -234,7 +287,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: BrawigoColors.blue700));
+      return const Center(
+        child: CircularProgressIndicator(color: BrawigoColors.blue700),
+      );
     }
 
     if (_errorMessage != null) {
@@ -244,10 +299,16 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text("Gagal memuat profil: $_errorMessage", textAlign: TextAlign.center),
+            Text(
+              "Gagal memuat profil: $_errorMessage",
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: BrawigoColors.blue700, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: BrawigoColors.blue700,
+                foregroundColor: Colors.white,
+              ),
               onPressed: _fetchProfile,
               child: const Text("Coba Lagi"),
             ),
@@ -280,7 +341,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 ? NetworkImage(photoUrl)
                 : null,
             child: photoUrl == null || photoUrl.isEmpty
-                ? const Icon(Icons.person, size: 60, color: BrawigoColors.blue800)
+                ? const Icon(
+                    Icons.person,
+                    size: 60,
+                    color: BrawigoColors.blue800,
+                  )
                 : null,
           ),
           const SizedBox(height: 16),
@@ -288,19 +353,27 @@ class _ProfilePageState extends State<ProfilePage> {
           // Nama & Role
           Text(
             fullName,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: BrawigoColors.blue950),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: BrawigoColors.blue950,
+            ),
           ),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: role == 'seller' ? BrawigoColors.yellowLight : BrawigoColors.blue100,
+              color: role == 'seller'
+                  ? BrawigoColors.yellowLight
+                  : BrawigoColors.blue100,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               role == 'seller' ? 'Penjual (Seller)' : 'Pembeli (Buyer)',
               style: TextStyle(
-                color: role == 'seller' ? BrawigoColors.yellowDarkActive : BrawigoColors.blue700,
+                color: role == 'seller'
+                    ? BrawigoColors.yellowDarkActive
+                    : BrawigoColors.blue700,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -315,7 +388,9 @@ class _ProfilePageState extends State<ProfilePage> {
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF2B5F9E),
               side: const BorderSide(color: Color(0xFF2B5F9E)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
             ),
           ),
@@ -350,12 +425,18 @@ class _ProfilePageState extends State<ProfilePage> {
               icon: const Icon(Icons.logout, color: Colors.red),
               label: const Text(
                 "Keluar (Logout)",
-                style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 side: const BorderSide(color: Colors.red),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: () {
                 _confirmLogout(context);
@@ -377,9 +458,19 @@ class _ProfilePageState extends State<ProfilePage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+              Text(
+                title,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
               const SizedBox(height: 2),
-              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: BrawigoColors.blue950)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: BrawigoColors.blue950,
+                ),
+              ),
             ],
           ),
         ],
@@ -392,7 +483,10 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Konfirmasi', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Konfirmasi',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: const Text('Apakah Anda yakin ingin keluar?'),
         actions: [
           TextButton(
@@ -403,11 +497,15 @@ class _ProfilePageState extends State<ProfilePage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             onPressed: () {
               Navigator.pop(dialogContext); // Tutup dialog
-              context.read<AuthBloc>().add(LogoutRequested()); // Dispatch event logout
+              context.read<AuthBloc>().add(
+                LogoutRequested(),
+              ); // Dispatch event logout
               context.go('/login');
             },
             child: const Text('Keluar'),

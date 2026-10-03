@@ -49,13 +49,31 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
     Emitter<MarketplaceState> emit,
   ) async {
     emit(MarketplaceLoading());
+
     try {
       final response = await _supabase
           .from('products')
-          .select()
+          .select('''
+          id,
+          product_name,
+          description,
+          price,
+          seller_id,
+          category_id,
+          stock,
+          status,
+          moderation_status,
+          thumbnail_url,
+          created_at,
+          categories (
+            id,
+            name
+          )
+        ''')
           .order('created_at', ascending: false);
 
       final products = List<Map<String, dynamic>>.from(response);
+
       emit(MarketplaceLoaded(products: products));
     } catch (e) {
       emit(MarketplaceError(message: 'Gagal memuat produk: ${e.toString()}'));

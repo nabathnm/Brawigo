@@ -38,10 +38,7 @@ class _OrderPageState extends State<OrderPage> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF244C80),
-            Color(0xFF1B3D68),
-          ],
+          colors: [Color(0xFF244C80), Color(0xFF1B3D68)],
         ),
       ),
       child: SafeArea(
@@ -177,8 +174,9 @@ class _OrderPageState extends State<OrderPage> {
                         color: isSelected
                             ? const Color(0xFF1890FF)
                             : const Color(0xFF8C9AA8),
-                        fontWeight:
-                            isSelected ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                         fontSize: 15,
                       ),
                     ),
@@ -415,9 +413,7 @@ class _OrderPageState extends State<OrderPage> {
                     horizontal: 16,
                     vertical: 11,
                   ),
-                  decoration: BoxDecoration(
-                    color: order.bannerBgColor,
-                  ),
+                  decoration: BoxDecoration(color: order.bannerBgColor),
                   child: Row(
                     children: [
                       Icon(

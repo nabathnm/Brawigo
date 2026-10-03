@@ -136,13 +136,49 @@ class PickupMethodSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Lokasi Meetup'),
+        const Text(
+          'Lokasi Meetup',
+          style: TextStyle(fontSize: 12, color: BrawigoColors.blue600),
+        ),
         const SizedBox(height: 8),
+
         TextFormField(
           controller: locationController,
-          decoration: const InputDecoration(
-            hintText: 'Masukkan lokasi meetup',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            hintText: 'Pilih Lokasi',
+            hintStyle: const TextStyle(color: Color(0xFF777777), fontSize: 14),
+            filled: true,
+            fillColor: Colors.white,
+
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(width: 1, color: Color(0x3F20395A)),
+            ),
+
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(width: 1, color: Color(0x3F20395A)),
+            ),
+
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(width: 1, color: Color(0x3F20395A)),
+            ),
+
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(width: 1, color: Colors.red),
+            ),
+
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(width: 1, color: Colors.red),
+            ),
           ),
           validator: (value) {
             if (selectedMethod != PickupMethod.cod) {
@@ -159,13 +195,42 @@ class PickupMethodSelector extends StatelessWidget {
 
         const SizedBox(height: 16),
 
-        const Text('Tanggal dan Waktu Meetup'),
+        const Text(
+          'Tanggal dan Waktu Meetup',
+          style: TextStyle(fontSize: 12, color: BrawigoColors.blue600),
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: timeController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'Pilih tanggal dan waktu',
-            border: OutlineInputBorder(),
+            hintStyle: const TextStyle(color: Color(0xFF777777), fontSize: 14),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(width: 1, color: Color(0x3F20395A)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(width: 1, color: Color(0x3F20395A)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(width: 1, color: Color(0x3F20395A)),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(width: 1, color: Colors.red),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(width: 1, color: Colors.red),
+            ),
           ),
           validator: (value) {
             if (selectedMethod != PickupMethod.cod) {

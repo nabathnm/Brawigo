@@ -47,11 +47,17 @@ class _ChatListPageState extends State<ChatListPage> {
           : await query.eq('buyer_id', currentUser.id).order('updated_at', ascending: false);
 
       final List<Map<String, dynamic>> enrichedConvs = [];
+      final Set<String> seenOtherUserIds = {};
 
       for (final conv in (convResponse as List)) {
-        final otherId = conv['buyer_id'] == currentUser.id
+        final otherId = (conv['buyer_id'] == currentUser.id
             ? conv['seller_id']
-            : conv['buyer_id'];
+            : conv['buyer_id'])?.toString() ?? '';
+
+        if (otherId.isEmpty || seenOtherUserIds.contains(otherId)) {
+          continue;
+        }
+        seenOtherUserIds.add(otherId);
 
         final profileRes = await _supabase
             .from('profiles')
@@ -76,12 +82,17 @@ class _ChatListPageState extends State<ChatListPage> {
         final lastMsg = (lastMsgRes as List).isNotEmpty ? lastMsgRes.first : null;
         final unreadCount = (unreadRes as List).length;
 
+        String lastMsgText = lastMsg?['message'] ?? 'Belum ada pesan';
+        if (lastMsgText.trim().startsWith('[IMAGE]:')) {
+          lastMsgText = '📷 Foto';
+        }
+
         enrichedConvs.add({
           'id': conv['id'],
           'other_user_id': otherId,
           'other_user_name': profileRes?['full_name'] ?? 'Pengguna',
           'other_user_photo': profileRes?['profile_photo_url'],
-          'last_message': lastMsg?['message'] ?? 'Belum ada pesan',
+          'last_message': lastMsgText,
           'last_message_time': lastMsg?['created_at'],
           'unread_count': unreadCount,
           'product_id': conv['product_id'],

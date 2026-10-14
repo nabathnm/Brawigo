@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/buyer_product_detail_page.dart';
 
 class ChatRoomPage extends StatefulWidget {
   final String conversationId;
@@ -30,13 +32,19 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   RealtimeChannel? _channel;
   bool _isLoading = true;
   bool _isSending = false;
+  bool _isUploadingImage = false;
+  Map<String, String>? _productData;
 
   @override
   void initState() {
     super.initState();
+    _productData = widget.productData;
     _loadMessages();
     _subscribeToMessages();
     _markMessagesAsRead();
+    if (_productData == null) {
+      _loadProductFromDb();
+    }
     if (widget.sendProductMention && widget.productData != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _sendProductMention();
@@ -136,9 +144,66 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     }
   }
 
+  Future<void> _loadProductFromDb() async {
+    try {
+      final conv = await _supabase
+          .from('conversations')
+          .select('product_id')
+          .eq('id', widget.conversationId)
+          .maybeSingle();
+      final productId = conv?['product_id'];
+      if (productId != null && productId.toString().isNotEmpty) {
+        final prod = await _supabase
+            .from('products')
+            .select('id, product_name, price, thumbnail_url, seller_id')
+            .eq('id', productId)
+            .maybeSingle();
+        if (prod != null && mounted) {
+          String imageUrl = prod['thumbnail_url']?.toString() ?? '';
+          if (imageUrl.isEmpty) {
+            final imgRes = await _supabase
+                .from('product_images')
+                .select('image_url')
+                .eq('product_id', productId)
+                .order('image_order', ascending: true)
+                .limit(1)
+                .maybeSingle();
+            imageUrl = imgRes?['image_url']?.toString() ?? '';
+          }
+          setState(() {
+            _productData = {
+              'id': prod['id']?.toString() ?? '',
+              'name': prod['product_name']?.toString() ?? '',
+              'product_name': prod['product_name']?.toString() ?? '',
+              'price': prod['price']?.toString() ?? '',
+              'image_url': imageUrl,
+              'thumbnail_url': imageUrl,
+            };
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  String _formatPrice(String? raw) {
+    if (raw == null || raw.isEmpty) return '';
+    if (raw.startsWith('Rp')) return raw;
+    final numVal = num.tryParse(raw);
+    if (numVal != null) {
+      final formatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+      return formatter.format(numVal);
+    }
+    return 'Rp $raw';
+  }
+
   Future<void> _sendProductMention() async {
-    final p = widget.productData!;
-    final mention = '🛍️ Menanyakan produk: ${p['name']}\nHarga: ${p['price']}';
+    final p = _productData ?? widget.productData;
+    if (p == null) return;
+    final name = (p['product_name'] != null && p['product_name']!.isNotEmpty)
+        ? p['product_name']!
+        : ((p['name'] != null && p['name']!.isNotEmpty) ? p['name']! : 'Produk');
+    final price = _formatPrice(p['price']);
+    final mention = '🛍️ Menanyakan produk: $name\nHarga: $price';
     await _sendMessage(mention);
   }
 
@@ -214,7 +279,7 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       ),
       body: Column(
         children: [
-          if (widget.productData != null) _buildProductCard(),
+          if ((_productData ?? widget.productData) != null) _buildProductCard(),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -246,66 +311,108 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
     );
   }
 
-  Widget _buildProductCard() {
-    final p = widget.productData!;
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: (p['image_url'] != null && p['image_url']!.isNotEmpty)
-                ? Image.network(
-                    p['image_url']!,
-                    width: 56,
-                    height: 56,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _placeholderImage(),
-                  )
-                : _placeholderImage(),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  p['name'] ?? '',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF15243C),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  p['price'] ?? '',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF2B5F9E),
-                  ),
-                ),
-              ],
+  Future<void> _openProductDetail(String productId) async {
+    if (productId.isEmpty) return;
+    try {
+      final res = await _supabase
+          .from('products')
+          .select()
+          .eq('id', productId)
+          .maybeSingle();
+      if (res != null && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => BuyerProductDetailPage(
+              product: Map<String, dynamic>.from(res),
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
-        ],
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal membuka produk: $e')),
+        );
+      }
+    }
+  }
+
+  Widget _buildProductCard() {
+    final p = _productData ?? widget.productData;
+    if (p == null) return const SizedBox.shrink();
+
+    final productId = p['id'] ?? p['product_id'] ?? '';
+    final name = (p['product_name'] != null && p['product_name']!.isNotEmpty)
+        ? p['product_name']!
+        : ((p['name'] != null && p['name']!.isNotEmpty) ? p['name']! : 'Produk');
+    final imageUrl = (p['thumbnail_url'] != null && p['thumbnail_url']!.isNotEmpty)
+        ? p['thumbnail_url']!
+        : (p['image_url'] ?? '');
+    final price = _formatPrice(p['price']);
+
+    return InkWell(
+      onTap: () => _openProductDetail(productId),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: (imageUrl.isNotEmpty)
+                  ? Image.network(
+                      imageUrl,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => _placeholderImage(),
+                    )
+                  : _placeholderImage(),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF15243C),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    price,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF2B5F9E),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8)),
+          ],
+        ),
       ),
     );
   }
@@ -317,6 +424,150 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
       color: Colors.grey.shade200,
       child: const Icon(Icons.image_not_supported, color: Colors.grey, size: 24),
     );
+  }
+
+  Future<void> _showAttachmentBottomSheet() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Kirim Gambar',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF15243C),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildAttachOption(
+                    icon: Icons.camera_alt_rounded,
+                    label: 'Kamera',
+                    color: const Color(0xFF2B5F9E),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _pickAndSendImage(ImageSource.camera);
+                    },
+                  ),
+                  _buildAttachOption(
+                    icon: Icons.photo_library_rounded,
+                    label: 'Galeri',
+                    color: const Color(0xFF10B981),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _pickAndSendImage(ImageSource.gallery);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAttachOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF15243C),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndSendImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: source,
+      imageQuality: 75,
+      maxWidth: 1200,
+    );
+
+    if (pickedFile == null) return;
+
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser == null) return;
+
+    setState(() => _isUploadingImage = true);
+
+    try {
+      final bytes = await pickedFile.readAsBytes();
+      final ext = pickedFile.name.split('.').last.toLowerCase();
+      final cleanExt = (ext == 'jpg' || ext == 'jpeg' || ext == 'png' || ext == 'webp') ? ext : 'jpg';
+      final fileName = 'chat/${widget.conversationId}_${DateTime.now().millisecondsSinceEpoch}.$cleanExt';
+
+      await _supabase.storage.from('product_images').uploadBinary(
+            fileName,
+            bytes,
+            fileOptions: FileOptions(contentType: 'image/$cleanExt'),
+          );
+
+      final imageUrl = _supabase.storage.from('product_images').getPublicUrl(fileName);
+
+      await _supabase.from('messages').insert({
+        'conversation_id': widget.conversationId,
+        'sender_id': currentUser.id,
+        'message': '[IMAGE]: $imageUrl',
+        'is_read': false,
+      });
+
+      await _supabase
+          .from('conversations')
+          .update({'updated_at': DateTime.now().toIso8601String()})
+          .eq('id', widget.conversationId);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengirim gambar: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+      }
+    }
   }
 
   Widget _buildInputBar() {
@@ -331,8 +582,14 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         child: Row(
           children: [
             IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.attach_file_rounded, color: Color(0xFF94A3B8)),
+              onPressed: _isUploadingImage ? null : _showAttachmentBottomSheet,
+              icon: _isUploadingImage
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2B5F9E)),
+                    )
+                  : const Icon(Icons.attach_file_rounded, color: Color(0xFF94A3B8)),
             ),
             Expanded(
               child: Container(
@@ -390,6 +647,41 @@ class _MessageBubble extends StatelessWidget {
     required this.time,
   });
 
+  bool get _isImage => message.trim().startsWith('[IMAGE]:');
+
+  String get _imageUrl {
+    if (!_isImage) return '';
+    return message.trim().replaceFirst('[IMAGE]:', '').trim();
+  }
+
+  void _showFullScreenImage(BuildContext context, String url) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.white, size: 30),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Align(
@@ -401,7 +693,9 @@ class _MessageBubble extends StatelessWidget {
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: _isImage
+                  ? const EdgeInsets.all(4)
+                  : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: isMe ? const Color(0xFF2B5F9E) : Colors.white,
                 borderRadius: BorderRadius.only(
@@ -418,14 +712,47 @@ class _MessageBubble extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Text(
-                message,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isMe ? Colors.white : const Color(0xFF15243C),
-                  height: 1.4,
-                ),
-              ),
+              child: _isImage
+                  ? GestureDetector(
+                      onTap: () => _showFullScreenImage(context, _imageUrl),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 250),
+                          child: Image.network(
+                            _imageUrl,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                width: 200,
+                                height: 150,
+                                color: Colors.grey.shade200,
+                                child: const Center(
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              width: 200,
+                              height: 150,
+                              color: Colors.grey.shade200,
+                              child: const Center(
+                                child: Icon(Icons.broken_image_rounded, color: Colors.grey),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Text(
+                      message,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isMe ? Colors.white : const Color(0xFF15243C),
+                        height: 1.4,
+                      ),
+                    ),
             ),
             const SizedBox(height: 2),
             Text(

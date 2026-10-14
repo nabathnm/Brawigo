@@ -81,32 +81,77 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
     }
 
     try {
-      final existingRes = await Supabase.instance.client
+      final convs = await Supabase.instance.client
           .from('conversations')
-          .select('id')
-          .eq('buyer_id', currentUser.id)
-          .eq('seller_id', sellerId)
-          .eq('product_id', productId)
-          .limit(1);
+          .select('id, product_id, buyer_id, seller_id')
+          .or('buyer_id.eq.${currentUser.id},seller_id.eq.${currentUser.id}')
+          .order('updated_at', ascending: false);
 
-      final List existingList = existingRes as List;
+      Map<String, dynamic>? existingConv;
+      for (final c in (convs as List)) {
+        final bId = c['buyer_id']?.toString();
+        final sId = c['seller_id']?.toString();
+        if ((bId == currentUser.id && sId == sellerId) ||
+            (bId == sellerId && sId == currentUser.id)) {
+          existingConv = Map<String, dynamic>.from(c);
+          break;
+        }
+      }
+
       String conversationId;
-      bool isNew = false;
+      bool shouldSendMention = false;
 
-      if (existingList.isNotEmpty) {
-        conversationId = existingList.first['id'];
-      } else {
-        final created = await Supabase.instance.client
+      if (existingConv != null) {
+        conversationId = existingConv['id'];
+        final prevProductId = existingConv['product_id']?.toString() ?? '';
+        if (prevProductId != productId) {
+          shouldSendMention = true;
+        }
+        await Supabase.instance.client
             .from('conversations')
-            .insert({
-              'buyer_id': currentUser.id,
-              'seller_id': sellerId,
+            .update({
               'product_id': productId,
+              'updated_at': DateTime.now().toIso8601String(),
             })
-            .select('id')
-            .single();
-        conversationId = created['id'];
-        isNew = true;
+            .eq('id', conversationId);
+      } else {
+        try {
+          final created = await Supabase.instance.client
+              .from('conversations')
+              .insert({
+                'buyer_id': currentUser.id,
+                'seller_id': sellerId,
+                'product_id': productId,
+              })
+              .select('id')
+              .single();
+          conversationId = created['id'];
+          shouldSendMention = true;
+        } on PostgrestException catch (e) {
+          if (e.code == '23505') {
+            final convList = await Supabase.instance.client
+                .from('conversations')
+                .select('id, product_id')
+                .or('and(buyer_id.eq.${currentUser.id},seller_id.eq.$sellerId),and(buyer_id.eq.$sellerId,seller_id.eq.${currentUser.id})')
+                .order('updated_at', ascending: false)
+                .limit(1);
+            if ((convList as List).isNotEmpty) {
+              conversationId = convList.first['id'];
+              shouldSendMention = true;
+              await Supabase.instance.client
+                  .from('conversations')
+                  .update({
+                    'product_id': productId,
+                    'updated_at': DateTime.now().toIso8601String(),
+                  })
+                  .eq('id', conversationId);
+            } else {
+              rethrow;
+            }
+          } else {
+            rethrow;
+          }
+        }
       }
 
       final sellerProfile = await Supabase.instance.client
@@ -117,6 +162,24 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
       final sellerName = sellerProfile?['full_name'] ?? 'Penjual';
 
       if (!mounted) return;
+      final pName = (widget.product['product_name'] ?? widget.product['name'])?.toString() ?? '';
+      final pImage = (_images.isNotEmpty
+              ? _images.first
+              : (widget.product['thumbnail_url'] ?? widget.product['image_url']))
+          ?.toString() ?? '';
+      final pPrice = widget.product['price']?.toString() ?? '';
+
+      final Map<String, String> mappedProductData = {
+        ...widget.product.map((key, value) => MapEntry(key, value?.toString() ?? '')),
+        'id': productId,
+        'product_id': productId,
+        'name': pName,
+        'product_name': pName,
+        'image_url': pImage,
+        'thumbnail_url': pImage,
+        'price': pPrice,
+      };
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -124,10 +187,8 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
             conversationId: conversationId,
             otherUserName: sellerName,
             otherUserId: sellerId,
-            productData: widget.product.map(
-              (key, value) => MapEntry(key, value?.toString() ?? ''),
-            ),
-            sendProductMention: isNew,
+            productData: mappedProductData,
+            sendProductMention: shouldSendMention,
           ),
         ),
       );

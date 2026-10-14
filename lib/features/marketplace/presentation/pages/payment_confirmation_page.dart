@@ -201,7 +201,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                 ),
                 onPressed: () {
                   Navigator.pop(dialogContext);
-                  context.go('/home', extra: 2);
+                  context.go('/home', extra: 3);
                 },
                 child: const Text("Lihat Riwayat Pesanan", style: TextStyle(color: Colors.white)),
               ),

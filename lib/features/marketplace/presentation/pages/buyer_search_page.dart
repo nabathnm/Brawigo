@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -144,7 +144,7 @@ class _BuyerSearchPageState extends State<BuyerSearchPage> {
       child: Row(
         children: [
           InkWell(
-            onTap: () => Navigator.pop(context),
+            onTap: () => context.pop(),
             borderRadius: BorderRadius.circular(20),
             child: const Padding(
               padding: EdgeInsets.all(8.0),

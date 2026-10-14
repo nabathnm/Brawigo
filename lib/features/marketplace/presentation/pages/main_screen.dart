@@ -5,8 +5,8 @@ import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.
 import 'package:brawigo/features/marketplace/presentation/pages/marketplace_buyer_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/marketplace_seller_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/add_product_page.dart';
-import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
+import 'package:brawigo/features/chat/presentation/pages/chat_list_page.dart';
 import 'package:brawigo/features/profile/presentation/pages/profile_page.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_bloc.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_state.dart';
@@ -37,20 +37,7 @@ class _MainScreenState extends State<MainScreen> {
     _isSeller = widget.isSeller;
     _pages = [
       _isSeller ? const MarketPlaceSellerPage() : const MarketplaceBuyerPage(),
-      const Scaffold(
-        backgroundColor: Color(0xFFEAF0F6),
-        body: Center(
-          child: Text(
-            "Halaman Pesan\n(Segera Hadir)",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF6A7A8A),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
+      ChatListPage(isSeller: _isSeller),
       const SizedBox(), // Placeholder untuk tombol tengah (+)
       BlocProvider(
         create: (context) =>
@@ -89,7 +76,7 @@ class _MainScreenState extends State<MainScreen> {
             color: const Color(0xFFFFFFFF),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF1E2D3D).withAlpha(0.07 as int),
+                color: const Color(0xFF1E2D3D).withValues(alpha: 0.07),
                 blurRadius: 24,
                 offset: const Offset(0, -6),
               ),
@@ -155,7 +142,8 @@ class _MainScreenState extends State<MainScreen> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(height: 6),
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(

@@ -42,17 +42,34 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/home',
-      builder: (context, state) => BlocProvider(
-        create: (context) => MarketplaceBloc()..add(LoadProducts()),
-        child: const MainScreen(isSeller: false),
-      ),
+      builder: (context, state) {
+        final initialIndex = (state.extra is int) ? state.extra as int : 0;
+        return BlocProvider(
+          create: (context) => MarketplaceBloc()..add(LoadProducts()),
+          child: MainScreen(isSeller: false, initialIndex: initialIndex),
+        );
+      },
     ),
     GoRoute(
       path: '/buyer',
-      builder: (context, state) => BlocProvider(
-        create: (context) => MarketplaceBloc()..add(LoadProducts()),
-        child: const MainScreen(isSeller: false),
-      ),
+      builder: (context, state) {
+        final initialIndex = (state.extra is int) ? state.extra as int : 0;
+        return BlocProvider(
+          create: (context) => MarketplaceBloc()..add(LoadProducts()),
+          child: MainScreen(isSeller: false, initialIndex: initialIndex),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/buyer-search',
+      builder: (context, state) => const BuyerSearchPage(),
+    ),
+    GoRoute(
+      path: '/buyer-product-detail',
+      builder: (context, state) {
+        final product = (state.extra as Map<String, dynamic>?) ?? {};
+        return BuyerProductDetailPage(product: product);
+      },
     ),
     GoRoute(
       path: '/seller',

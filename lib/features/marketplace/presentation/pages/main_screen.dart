@@ -13,6 +13,8 @@ import 'package:brawigo/features/auth/presentation/blocs/auth_state.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_bloc.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_event.dart';
 import 'package:brawigo/features/order/presentation/pages/order_list_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:brawigo/core/utils/seller_profile_checker.dart';
 import 'package:go_router/go_router.dart';
 
 class MainScreen extends StatefulWidget {
@@ -30,13 +32,35 @@ class _MainScreenState extends State<MainScreen> {
   late final List<Widget> _pages;
   late final bool _isSeller;
 
+  void _goToProfile() {
+    setState(() {
+      _currentIndex = 4;
+    });
+  }
+
+  Future<void> _checkSellerProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null || !_isSeller) return;
+
+    final status = await SellerProfileStatus.check(user.id);
+    if (!status.isComplete && mounted) {
+      SellerProfileStatus.showIncompleteDialog(
+        context,
+        onGoToProfile: _goToProfile,
+        onEscapeToBuyer: () => context.go('/buyer'),
+      );
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     _isSeller = widget.isSeller;
     _pages = [
-      _isSeller ? const MarketPlaceSellerPage() : const MarketplaceBuyerPage(),
+      _isSeller
+          ? MarketPlaceSellerPage(onNavigateToProfile: _goToProfile)
+          : const MarketplaceBuyerPage(),
       ChatListPage(isSeller: _isSeller),
       const SizedBox(), // Placeholder untuk tombol tengah (+)
       BlocProvider(
@@ -45,8 +69,14 @@ class _MainScreenState extends State<MainScreen> {
               ..add(_isSeller ? LoadSellerOrders() : LoadBuyerOrders()),
         child: OrderListPage(isSeller: _isSeller),
       ),
-      const ProfilePage(),
+      ProfilePage(isSeller: _isSeller),
     ];
+
+    if (_isSeller) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkSellerProfile();
+      });
+    }
   }
 
   @override
@@ -164,7 +194,21 @@ class _MainScreenState extends State<MainScreen> {
     return GestureDetector(
       onTap: () async {
         if (_isSeller) {
-          await Navigator.push(
+          final user = Supabase.instance.client.auth.currentUser;
+          if (user != null) {
+            final status = await SellerProfileStatus.check(user.id);
+            if (!status.isComplete && context.mounted) {
+              SellerProfileStatus.showIncompleteDialog(
+                context,
+                onGoToProfile: _goToProfile,
+                onEscapeToBuyer: () => context.go('/buyer'),
+              );
+              return;
+            }
+          }
+
+          if (!context.mounted) return;
+          final result = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
               builder: (context) => BlocProvider.value(
@@ -173,7 +217,7 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ),
           );
-          if (context.mounted) {
+          if (result == true && context.mounted) {
             marketplaceBloc.add(LoadSellerProducts());
           }
         } else {

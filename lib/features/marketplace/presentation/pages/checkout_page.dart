@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'payment_confirmation_page.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -21,7 +23,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _meetupLocationController = TextEditingController();
   final _meetupTimeController = TextEditingController();
   final _deliveryAddressController = TextEditingController();
-  final _sellerAddress = "Jl. Bunga Coklat, Jatimulyo, Kec. Lowokwaru, Kota Malang, Jawa Timur 65141";
+  String _sellerAddress = "Jl. Bunga Coklat, Jatimulyo, Kec. Lowokwaru, Kota Malang, Jawa Timur 65141";
 
   // Payment method: 'qris', 'transfer', 'cash'
   String? _selectedPaymentMethod;
@@ -45,6 +47,59 @@ class _CheckoutPageState extends State<CheckoutPage> {
     }
     _meetupLocationController.text = "Game Corner, Lantai 1 Gedung F FILKOM UB";
     _deliveryAddressController.text = "Jl. Sigura-gura, Sumbersari, Kec. Lowokwaru, Kota Malang, Jawa Timur 65141";
+    _loadAddresses();
+  }
+
+  Future<void> _loadAddresses() async {
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null) {
+        final buyerProfile = await Supabase.instance.client
+            .from('profiles')
+            .select('bio')
+            .eq('id', user.id)
+            .maybeSingle();
+        if (buyerProfile != null && buyerProfile['bio'] != null) {
+          try {
+            final bioData = jsonDecode(buyerProfile['bio'].toString());
+            if (bioData is Map &&
+                bioData['delivery_address'] != null &&
+                bioData['delivery_address'].toString().trim().isNotEmpty) {
+              if (mounted) {
+                setState(() {
+                  _deliveryAddressController.text =
+                      bioData['delivery_address'].toString().trim();
+                });
+              }
+            }
+          } catch (_) {}
+        }
+      }
+
+      final sellerId = widget.product['seller_id']?.toString();
+      if (sellerId != null && sellerId.isNotEmpty) {
+        final sellerProfile = await Supabase.instance.client
+            .from('profiles')
+            .select('bio')
+            .eq('id', sellerId)
+            .maybeSingle();
+        if (sellerProfile != null && sellerProfile['bio'] != null) {
+          try {
+            final bioData = jsonDecode(sellerProfile['bio'].toString());
+            if (bioData is Map &&
+                bioData['store_address'] != null &&
+                bioData['store_address'].toString().trim().isNotEmpty) {
+              if (mounted) {
+                setState(() {
+                  _sellerAddress =
+                      bioData['store_address'].toString().trim();
+                });
+              }
+            }
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -447,7 +502,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     width: 60,
                                     height: 60,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => _placeholderImage(),
+                                    errorBuilder: (context, error, stackTrace) => _placeholderImage(),
                                   )
                                 : _placeholderImage(),
                           ),

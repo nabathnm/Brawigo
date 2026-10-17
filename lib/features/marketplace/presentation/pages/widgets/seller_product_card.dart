@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
+import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/product_detail_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/update_product_page.dart';
 
@@ -8,11 +9,13 @@ import 'package:brawigo/features/marketplace/presentation/pages/update_product_p
 class SellerProductCard extends StatelessWidget {
   final Map<String, dynamic> product;
   final VoidCallback onDelete;
+  final bool Function()? onBeforeAction;
 
   const SellerProductCard({
     super.key,
     required this.product,
     required this.onDelete,
+    this.onBeforeAction,
   });
 
   String _formatCurrency(dynamic amount) {
@@ -162,16 +165,21 @@ class SellerProductCard extends StatelessWidget {
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(20),
                     ),
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      if (onBeforeAction != null && !onBeforeAction!()) return;
+                      final bloc = context.read<MarketplaceBloc>();
+                      final result = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
                           builder: (_) => BlocProvider.value(
-                            value: context.read<MarketplaceBloc>(),
+                            value: bloc,
                             child: UpdateProductPage(product: product),
                           ),
                         ),
                       );
+                      if (result == true && context.mounted) {
+                        bloc.add(LoadSellerProducts());
+                      }
                     },
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -197,14 +205,21 @@ class SellerProductCard extends StatelessWidget {
                 Container(width: 1, height: 26, color: const Color(0xFFEFF3F7)),
                 Expanded(
                   child: InkWell(
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      if (onBeforeAction != null && !onBeforeAction!()) return;
+                      final bloc = context.read<MarketplaceBloc>();
+                      final result = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              ProductDetailPage(product: product),
+                          builder: (context) => BlocProvider.value(
+                            value: bloc,
+                            child: ProductDetailPage(product: product),
+                          ),
                         ),
                       );
+                      if (result == true && context.mounted) {
+                        bloc.add(LoadSellerProducts());
+                      }
                     },
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -233,7 +248,10 @@ class SellerProductCard extends StatelessWidget {
                     borderRadius: const BorderRadius.only(
                       bottomRight: Radius.circular(20),
                     ),
-                    onTap: onDelete,
+                    onTap: () {
+                      if (onBeforeAction != null && !onBeforeAction!()) return;
+                      onDelete();
+                    },
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

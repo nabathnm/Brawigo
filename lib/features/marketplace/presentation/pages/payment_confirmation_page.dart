@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -23,8 +24,8 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
   // Seller payment details
   String? _sellerQrisUrl;
-  final String _sellerBankName = 'Bank BCA';
-  final String _sellerAccountNumber = '8220192831';
+  String _sellerBankName = 'Bank BCA';
+  String _sellerAccountNumber = '8220192831';
   String _sellerAccountHolder = 'Brawigo Store';
 
   final _currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
@@ -43,17 +44,46 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     try {
       final res = await _supabase
           .from('profiles')
-          .select('full_name, phone_number, profile_photo_url')
+          .select('full_name, phone_number, profile_photo_url, qris_url, bank_name, bank_account_number, bank_account_holder, bio')
           .eq('id', sellerId)
           .maybeSingle();
 
       if (res != null && mounted) {
-        final name = res['full_name']?.toString();
-        if (name != null && name.isNotEmpty) {
-          setState(() {
-            _sellerAccountHolder = name;
-          });
+        String? storeName;
+        if (res['bio'] != null) {
+          try {
+            final bioJson = jsonDecode(res['bio'].toString());
+            if (bioJson is Map) {
+              storeName = bioJson['store_name']?.toString().trim();
+            }
+          } catch (_) {}
         }
+
+        setState(() {
+          final qris = res['qris_url']?.toString().trim();
+          if (qris != null && qris.isNotEmpty) {
+            _sellerQrisUrl = qris;
+          }
+          final bank = res['bank_name']?.toString().trim();
+          if (bank != null && bank.isNotEmpty) {
+            _sellerBankName = bank;
+          }
+          final accNum = res['bank_account_number']?.toString().trim();
+          if (accNum != null && accNum.isNotEmpty) {
+            _sellerAccountNumber = accNum;
+          }
+          final accHolder = res['bank_account_holder']?.toString().trim();
+          if (accHolder != null && accHolder.isNotEmpty) {
+            _sellerAccountHolder = accHolder;
+          } else if (storeName != null && storeName.isNotEmpty) {
+            _sellerAccountHolder = storeName;
+          } else {
+            final name = res['full_name']?.toString().trim();
+            if (name != null && name.isNotEmpty) {
+              _sellerAccountHolder = name;
+            }
+          }
+        });
       }
     } catch (_) {}
   }
@@ -126,7 +156,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         'meetup_time': widget.checkoutData['meetup_time'],
         'notes': widget.checkoutData['notes'],
         'order_status': 'created',
+        'status': 'pending',
         'payment_status': uploadedProofUrl != null ? 'paid' : 'pending',
+        'payment_proof_url': uploadedProofUrl,
       });
 
       // 3. Kirim pesan konfirmasi otomatis ke conversation chat

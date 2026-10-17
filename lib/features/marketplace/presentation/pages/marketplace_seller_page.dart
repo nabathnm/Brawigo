@@ -1,18 +1,21 @@
+import 'package:brawigo/core/utils/seller_profile_checker.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/widgets/custom_search.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/widgets/header.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/widgets/seller_product_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/product_detail_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/update_product_page.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_state.dart';
-import 'package:brawigo/features/marketplace/presentation/pages/update_product_page.dart';
 
 class MarketPlaceSellerPage extends StatefulWidget {
-  const MarketPlaceSellerPage({super.key});
+  final VoidCallback? onNavigateToProfile;
+
+  const MarketPlaceSellerPage({super.key, this.onNavigateToProfile});
 
   @override
   State<MarketPlaceSellerPage> createState() => _MarketPlaceSellerPageState();
@@ -22,6 +25,46 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
   int _selectedFilter = 0; // 0: Semua, 1: Tersedia, 2: Habis, 3: Arsip
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  SellerProfileStatus? _profileStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkProfileStatus();
+  }
+
+  Future<void> _checkProfileStatus() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      final status = await SellerProfileStatus.check(user.id);
+      if (mounted) {
+        setState(() {
+          _profileStatus = status;
+        });
+        if (!status.isComplete) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            SellerProfileStatus.showIncompleteDialog(
+              context,
+              onGoToProfile: () => widget.onNavigateToProfile?.call(),
+              onEscapeToBuyer: () => context.go('/buyer'),
+            );
+          });
+        }
+      }
+    }
+  }
+
+  bool _requireProfileComplete() {
+    if (_profileStatus != null && !_profileStatus!.isComplete) {
+      SellerProfileStatus.showIncompleteDialog(
+        context,
+        onGoToProfile: () => widget.onNavigateToProfile?.call(),
+        onEscapeToBuyer: () => context.go('/buyer'),
+      );
+      return false;
+    }
+    return true;
+  }
 
   @override
   void dispose() {
@@ -45,6 +88,7 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
   }
 
   void _showDeleteDialog(BuildContext context, Map<String, dynamic> product) {
+    if (!_requireProfileComplete()) return;
     final productId = product['id'].toString();
     final productName = product['product_name'] ?? 'Produk';
 
@@ -97,7 +141,53 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                 onRoleSwitch: () => context.go('/buyer'),
               ),
             ),
-            SizedBox(height: 16),
+            if (_profileStatus != null && !_profileStatus!.isComplete) ...[
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: InkWell(
+                  onTap: () {
+                    SellerProfileStatus.showIncompleteDialog(
+                      context,
+                      onGoToProfile: () => widget.onNavigateToProfile?.call(),
+                      onEscapeToBuyer: () => context.go('/buyer'),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF59E0B)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 26),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                "Pengaturan Toko Belum Lengkap",
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF92400E)),
+                              ),
+                              Text(
+                                "Belum ada: ${_profileStatus!.missingFields.join(', ')}. Klik di sini untuk melengkapi profil.",
+                                style: const TextStyle(fontSize: 11, color: Color(0xFFB45309)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFD97706), size: 14),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: CustomSearch(
@@ -301,6 +391,7 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                                       product: item,
                                       onDelete: () =>
                                           _showDeleteDialog(context, item),
+                                      onBeforeAction: _requireProfileComplete,
                                     );
                                   },
                                 ),
@@ -341,262 +432,6 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
             style: TextStyle(color: Color(0xFF6A7A8A), fontSize: 15),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildProductCard(BuildContext context, Map<String, dynamic> product) {
-    final String? imageUrl = product['thumbnail_url'] as String?;
-    final String name = product['product_name'] as String? ?? 'Tanpa Nama';
-    final dynamic priceVal = product['price'] ?? 0;
-    final String formattedPrice = _formatCurrency(priceVal);
-    final int stock = (product['stock'] as num?)?.toInt() ?? 0;
-    final String status = product['status'] as String? ?? 'active';
-    final String categoryName =
-        product['category_name'] as String? ?? 'Alat Elektronik';
-
-    // Atur Badge Status sesuai stok/status
-    String badgeText = 'Aktif';
-    Color badgeBg = const Color(0xFFE5F9EB);
-    Color badgeColor = const Color(0xFF23B259);
-
-    if (stock <= 0) {
-      badgeText = 'Habis';
-      badgeBg = const Color(0xFFFFECEE);
-      badgeColor = const Color(0xFFFF4D4F);
-    } else if (status == 'archived') {
-      badgeText = 'Arsip';
-      badgeBg = const Color(0xFFE6F0FF);
-      badgeColor = const Color(0xFF1890FF);
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(10),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Bagian Atas: Gambar + Detail Produk
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: SizedBox(
-                    width: 95,
-                    height: 95,
-                    child: imageUrl != null && imageUrl.isNotEmpty
-                        ? Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                _buildPlaceholderImage(),
-                          )
-                        : _buildPlaceholderImage(),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: badgeBg,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          badgeText,
-                          style: TextStyle(
-                            color: badgeColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1D4A79),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        categoryName,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF6A7A8A),
-                          fontWeight: FontWeight.w400,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Rp $formattedPrice",
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1D4A79),
-                            ),
-                          ),
-                          Text(
-                            "Stok: $stock",
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF556575),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Garis Pemisah & Tombol Aksi (Edit, Detail, Hapus)
-          const Divider(height: 1, thickness: 1, color: Color(0xFFEFF3F7)),
-          SizedBox(
-            height: 48,
-            child: Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(20),
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              UpdateProductPage(product: product),
-                        ),
-                      );
-                    },
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.edit_outlined,
-                          color: Color(0xFF007BFF),
-                          size: 18,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          "Edit",
-                          style: TextStyle(
-                            color: Color(0xFF007BFF),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Container(width: 1, height: 26, color: const Color(0xFFEFF3F7)),
-                Expanded(
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              ProductDetailPage(product: product),
-                        ),
-                      );
-                    },
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.visibility_outlined,
-                          color: Color(0xFF6A7A8A),
-                          size: 18,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          "Detail",
-                          style: TextStyle(
-                            color: Color(0xFF6A7A8A),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Container(width: 1, height: 26, color: const Color(0xFFEFF3F7)),
-                Expanded(
-                  child: InkWell(
-                    borderRadius: const BorderRadius.only(
-                      bottomRight: Radius.circular(20),
-                    ),
-                    onTap: () => _showDeleteDialog(context, product),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.delete_outline_rounded,
-                          color: Color(0xFFFF4D4F),
-                          size: 18,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          "Hapus",
-                          style: TextStyle(
-                            color: Color(0xFFFF4D4F),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceholderImage() {
-    return Container(
-      color: const Color(0xFFEBF0F5),
-      child: const Icon(
-        Icons.image_outlined,
-        size: 40,
-        color: Color(0xFF90A4AE),
       ),
     );
   }

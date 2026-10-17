@@ -58,14 +58,16 @@ class _BuyerSearchResultPageState extends State<BuyerSearchResultPage> {
       final products = List<Map<String, dynamic>>.from(response);
 
       if (mounted) {
-        final results = products.map((p) {
+        final results = products.map<Map<String, String>>((p) {
           return {
             'id': p['id']?.toString() ?? '',
             'name': p['product_name']?.toString() ?? '',
+            'product_name': p['product_name']?.toString() ?? '',
             'category': 'Kategori',
             'price': p['price'] != null ? _formatCurrency.format(p['price']) : '',
             'raw_price': p['price']?.toString() ?? '0',
             'image_url': p['thumbnail_url']?.toString() ?? '',
+            'thumbnail_url': p['thumbnail_url']?.toString() ?? '',
             'description': p['description']?.toString() ?? '',
             'seller_id': p['seller_id']?.toString() ?? '',
           };
@@ -404,7 +406,7 @@ class _BuyerSearchResultPageState extends State<BuyerSearchResultPage> {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.72,
+        childAspectRatio: 0.74,
         crossAxisSpacing: 14,
         mainAxisSpacing: 14,
       ),
@@ -435,62 +437,63 @@ class _BuyerSearchResultPageState extends State<BuyerSearchResultPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                  child: (product['image_url'] != null && product['image_url']!.isNotEmpty)
-                      ? Image.network(
-                          product['image_url']!,
-                          height: 145,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            height: 145,
-                            color: Colors.grey.shade200,
-                            child: const Icon(Icons.broken_image, color: Colors.grey),
-                          ),
-                        )
-                      : Container(
-                          height: 145,
-                          color: Colors.grey.shade200,
-                          child: const Icon(Icons.image_not_supported, color: Colors.grey),
-                        ),
-                ),
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product['name'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF2B5F9E),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          product['category'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          product['price'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF15243C),
-                          ),
-                        ),
-                      ],
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: double.infinity,
+                      child: (product['image_url'] != null && product['image_url']!.isNotEmpty)
+                          ? Image.network(
+                              product['image_url']!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.broken_image, color: Colors.grey),
+                              ),
+                            )
+                          : Container(
+                              color: Colors.grey.shade200,
+                              child: const Icon(Icons.image_not_supported, color: Colors.grey),
+                            ),
                     ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        product['name'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF2B5F9E),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        product['category'] ?? 'Kategori',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        product['price'] ?? '',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF15243C),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

@@ -112,8 +112,14 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
         await _supabase.from('product_images').insert(productImagesToInsert);
       }
 
-      // 4. Muat ulang daftar produk
-      add(LoadProducts());
+      // 4. Muat ulang daftar produk seller
+      final response = await _supabase
+          .from('products')
+          .select()
+          .eq('seller_id', user.id)
+          .order('created_at', ascending: false);
+      final products = List<Map<String, dynamic>>.from(response);
+      emit(MarketplaceLoaded(products: products));
     } catch (e) {
       emit(MarketplaceError(message: 'Gagal menambah produk: ${e.toString()}'));
     }
@@ -207,8 +213,24 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
         if (thumbnailUrl != null) 'thumbnail_url': thumbnailUrl,
       }).eq('id', event.id);
 
-      // 6. Muat ulang produk
-      add(LoadProducts());
+      // 6. Muat ulang produk seller
+      final user = _supabase.auth.currentUser;
+      if (user != null) {
+        final response = await _supabase
+            .from('products')
+            .select()
+            .eq('seller_id', user.id)
+            .order('created_at', ascending: false);
+        final products = List<Map<String, dynamic>>.from(response);
+        emit(MarketplaceLoaded(products: products));
+      } else {
+        final response = await _supabase
+            .from('products')
+            .select()
+            .order('created_at', ascending: false);
+        final products = List<Map<String, dynamic>>.from(response);
+        emit(MarketplaceLoaded(products: products));
+      }
     } catch (e) {
       emit(MarketplaceError(message: 'Gagal mengubah produk: ${e.toString()}'));
     }
@@ -245,8 +267,24 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
       // 2. Hapus data dari Database (product_images terhapus via cascade jika ada)
       await _supabase.from('products').delete().eq('id', event.id);
 
-      // 3. Muat ulang produk
-      add(LoadProducts());
+      // 3. Muat ulang produk seller
+      final user = _supabase.auth.currentUser;
+      if (user != null) {
+        final response = await _supabase
+            .from('products')
+            .select()
+            .eq('seller_id', user.id)
+            .order('created_at', ascending: false);
+        final products = List<Map<String, dynamic>>.from(response);
+        emit(MarketplaceLoaded(products: products));
+      } else {
+        final response = await _supabase
+            .from('products')
+            .select()
+            .order('created_at', ascending: false);
+        final products = List<Map<String, dynamic>>.from(response);
+        emit(MarketplaceLoaded(products: products));
+      }
     } catch (e) {
       emit(MarketplaceError(message: 'Gagal menghapus produk: ${e.toString()}'));
     }

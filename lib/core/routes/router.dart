@@ -1,6 +1,6 @@
 import 'package:brawigo/features/order/presentation/bloc/order_bloc.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_event.dart';
-import 'package:brawigo/features/order/presentation/pages/checkout_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/checkout_page.dart' as marketplace_checkout;
 import 'package:brawigo/features/order/presentation/pages/order_list_page.dart';
 import 'package:brawigo/features/order/presentation/pages/order_detail_page.dart';
 import 'package:go_router/go_router.dart';
@@ -83,12 +83,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/checkout/:productId',
       builder: (context, state) {
-        final productId = state.pathParameters['productId']!;
-        final product = state.extra as Map<String, dynamic>;
-        return BlocProvider(
-          create: (context) => OrderBloc(),
-          child: CheckoutPage(productId: productId, product: product),
-        );
+        final product = (state.extra as Map<String, dynamic>?) ?? {};
+        return marketplace_checkout.CheckoutPage(product: product);
       },
     ),
     GoRoute(

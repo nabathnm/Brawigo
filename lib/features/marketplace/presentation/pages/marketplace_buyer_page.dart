@@ -404,6 +404,21 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
     );
   }
 
+  String _formatCurrency(dynamic amount) {
+    final int value = (amount as num?)?.toInt() ?? 0;
+    String valStr = value.toString();
+    String result = '';
+    int count = 0;
+    for (int i = valStr.length - 1; i >= 0; i--) {
+      if (count != 0 && count % 3 == 0) {
+        result = '.$result';
+      }
+      result = valStr[i] + result;
+      count++;
+    }
+    return result;
+  }
+
   Widget _buildHorizontalProductList(List<Map<String, dynamic>> products) {
     return SizedBox(
       height: 250,
@@ -426,7 +441,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
             final String? imageUrl = product['thumbnail_url'] as String?;
             final String name =
                 product['product_name'] as String? ?? 'Tanpa Nama';
-            final String price = (product['price'] as num?)?.toString() ?? '0';
+            final String formattedPrice = _formatCurrency(product['price']);
             final String category =
                 product['category_name'] as String? ?? 'Alat';
 
@@ -498,7 +513,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                             ),
                             const Spacer(),
                             Text(
-                              "Rp $price",
+                              "Rp $formattedPrice",
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,

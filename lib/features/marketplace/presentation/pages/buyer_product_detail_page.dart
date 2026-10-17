@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:brawigo/features/chat/presentation/pages/chat_room_page.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:go_router/go_router.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/widgets/full_screen_image_viewer.dart';
 
 class BuyerProductDetailPage extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -241,9 +243,52 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
     return desc.length > 120;
   }
 
+  /// Format harga ke "Rp xxx.xxx"
+  /// Aman untuk menerima [num], [int], [double], maupun [String] (angka mentah
+  /// atau sudah terformat seperti "Rp 300.000" dari halaman search).
+  String _formatPrice(dynamic amount) {
+    if (amount == null) return 'Rp 0';
+
+    // Jika sudah berupa String terformat yang mengandung "Rp", kembalikan langsung
+    if (amount is String) {
+      final trimmed = amount.trim();
+      if (trimmed.startsWith('Rp') || trimmed.startsWith('rp')) {
+        return trimmed;
+      }
+      // Coba parse sebagai angka
+      final parsed = double.tryParse(trimmed.replaceAll('.', '').replaceAll(',', ''));
+      if (parsed == null) return 'Rp 0';
+      return _formatNum(parsed.toInt());
+    }
+
+    // Jika berupa num
+    if (amount is num) {
+      return _formatNum(amount.toInt());
+    }
+
+    return 'Rp 0';
+  }
+
+  String _formatNum(int value) {
+    String valStr = value.toString();
+    String result = '';
+    int count = 0;
+    for (int i = valStr.length - 1; i >= 0; i--) {
+      if (count != 0 && count % 3 == 0) {
+        result = '.$result';
+      }
+      result = valStr[i] + result;
+      count++;
+    }
+    return 'Rp $result';
+  }
+
   @override
   Widget build(BuildContext context) {
     final product = widget.product;
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    final sellerId = product['seller_id']?.toString() ?? '';
+    final bool isOwnProduct = currentUserId != null && currentUserId == sellerId;
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
@@ -277,21 +322,31 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                               });
                             },
                             itemBuilder: (context, index) {
-                              return Image.network(
-                                _images[index],
-                                width: double.infinity,
-                                height: 380,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
-                                      height: 380,
-                                      color: Colors.grey.shade200,
-                                      child: const Icon(
-                                        Icons.broken_image,
-                                        size: 50,
-                                        color: Colors.grey,
+                              return GestureDetector(
+                                onTap: () => FullScreenImageViewer.open(
+                                  context,
+                                  images: _images,
+                                  initialIndex: index,
+                                  title: widget.product['product_name']?.toString() ??
+                                      widget.product['name']?.toString() ??
+                                      'Produk',
+                                ),
+                                child: Image.network(
+                                  _images[index],
+                                  width: double.infinity,
+                                  height: 380,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                        height: 380,
+                                        color: Colors.grey.shade200,
+                                        child: const Icon(
+                                          Icons.broken_image,
+                                          size: 50,
+                                          color: Colors.grey,
+                                        ),
                                       ),
-                                    ),
+                                ),
                               );
                             },
                           )
@@ -324,6 +379,35 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                       ),
                     ),
                   ),
+                  // Tombol Full Screen
+                  if (_images.isNotEmpty)
+                    Positioned(
+                      top: MediaQuery.of(context).padding.top + 16,
+                      right: 16,
+                      child: InkWell(
+                        onTap: () => FullScreenImageViewer.open(
+                          context,
+                          images: _images,
+                          initialIndex: _currentImageIndex,
+                          title: widget.product['product_name']?.toString() ??
+                              widget.product['name']?.toString() ??
+                              'Produk',
+                        ),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.fullscreen_rounded,
+                            size: 24,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ),
                   // Panah Kiri Navigasi Gambar
                   if (_images.length > 1 && _currentImageIndex > 0)
                     Positioned(
@@ -429,11 +513,9 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    product['price'] != null
-                        ? 'Rp ${product['price']}'
-                        : 'Rp200.000',
+                    _formatPrice(product['price']),
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF15243C),
                     ),
@@ -456,7 +538,7 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                                 future: Supabase.instance.client
                                     .from('profiles')
                                     .select(
-                                      'full_name, username, profile_photo_url',
+                                      'full_name, username, profile_photo_url, bio',
                                     )
                                     .eq('id', product['seller_id'] ?? '')
                                     .maybeSingle(),
@@ -468,17 +550,33 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                                     if (snapshot.hasData &&
                                         snapshot.data != null) {
                                       final p = snapshot.data as Map;
+                                      String? storeName;
+                                      String? storePhotoUrl;
+                                      if (p['bio'] != null) {
+                                        try {
+                                          final bioJson = jsonDecode(p['bio'].toString());
+                                          if (bioJson is Map) {
+                                            storeName = bioJson['store_name']?.toString().trim();
+                                            storePhotoUrl = bioJson['store_photo_url']?.toString().trim();
+                                          }
+                                        } catch (_) {}
+                                      }
+
                                       final username = p['username']
                                           ?.toString()
                                           .trim();
                                       final fullName = p['full_name']
                                           ?.toString()
                                           .trim();
-                                      photoUrl = p['profile_photo_url']
-                                          ?.toString()
-                                          .trim();
+                                      photoUrl = (storePhotoUrl != null && storePhotoUrl.isNotEmpty)
+                                          ? storePhotoUrl
+                                          : p['profile_photo_url']
+                                              ?.toString()
+                                              .trim();
 
-                                      if (username != null &&
+                                      if (storeName != null && storeName.isNotEmpty) {
+                                        sellerName = storeName;
+                                      } else if (username != null &&
                                           username.isNotEmpty &&
                                           username != '-') {
                                         sellerName = username;
@@ -731,42 +829,70 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: const Color(0xFF2B5F9E),
+                      color: isOwnProduct
+                          ? const Color(0xFFE2E8F0)
+                          : const Color(0xFF2B5F9E),
                       width: 1.5,
                     ),
                   ),
                   child: IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.chat_bubble_outline_rounded,
-                      color: Color(0xFF2B5F9E),
+                      color: isOwnProduct
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF2B5F9E),
                       size: 22,
                     ),
-                    onPressed: _openChat,
+                    onPressed: isOwnProduct
+                        ? () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Ini adalah produk Anda sendiri, tidak dapat mengirim pesan.',
+                                ),
+                              ),
+                            );
+                          }
+                        : _openChat,
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      final productId = product['id']?.toString() ?? '';
-                      if (productId.isNotEmpty) {
-                        context.push('/checkout/$productId', extra: product);
-                      }
-                    },
+                    onPressed: isOwnProduct
+                        ? () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Ini adalah produk Anda sendiri, tidak dapat melakukan checkout.',
+                                ),
+                              ),
+                            );
+                          }
+                        : () {
+                            final productId = product['id']?.toString() ?? '';
+                            if (productId.isNotEmpty) {
+                              context.push('/checkout/$productId', extra: product);
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A7EBB),
+                      backgroundColor: isOwnProduct
+                          ? const Color(0xFFE2E8F0)
+                          : const Color(0xFF4A7EBB),
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                       minimumSize: const Size(double.infinity, 48),
                     ),
-                    child: const Text(
-                      "Checkout",
+                    child: Text(
+                      isOwnProduct ? "Produk Anda Sendiri" : "Checkout",
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: isOwnProduct
+                            ? const Color(0xFF64748B)
+                            : Colors.white,
                       ),
                     ),
                   ),

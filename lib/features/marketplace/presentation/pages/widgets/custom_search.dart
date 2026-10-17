@@ -35,17 +35,12 @@ class CustomSearch extends StatelessWidget {
                   color: Color(0xFF8C9AA8),
                   fontSize: 15,
                 ),
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Image.asset(
-                    "assets/images/icon/find.png",
-                    width: 20,
-                    height: 20,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.search_rounded,
-                      color: Color(0xFF8C9AA8),
-                      size: 20,
-                    ),
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Icon(
+                    Icons.search_rounded,
+                    color: Color(0xFF8C9AA8),
+                    size: 20,
                   ),
                 ),
                 border: InputBorder.none,
@@ -71,16 +66,11 @@ class CustomSearch extends StatelessWidget {
           child: InkWell(
             onTap: onFilterPressed ?? () {},
             borderRadius: BorderRadius.circular(16),
-            child: Center(
-              child: Image.asset(
-                "assets/images/icon/filter.png",
-                width: 22,
-                height: 22,
-                errorBuilder: (_, __, ___) => const Icon(
-                  Icons.tune_rounded,
-                  color: Color(0xFF15243C),
-                  size: 22,
-                ),
+            child: const Center(
+              child: Icon(
+                Icons.tune_rounded,
+                color: Color(0xFF15243C),
+                size: 22,
               ),
             ),
           ),

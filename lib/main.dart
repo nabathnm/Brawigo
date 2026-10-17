@@ -46,7 +46,6 @@ class MyApp extends StatelessWidget {
           canvasColor: Colors.white,
           colorScheme: const ColorScheme.light(
             surface: Colors.white,
-            background: Colors.white,
           ),
         ),
         routerConfig: appRouter,

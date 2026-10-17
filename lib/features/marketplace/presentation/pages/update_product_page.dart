@@ -43,6 +43,8 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
   List<Map<String, dynamic>> _categories = [];
   bool _isLoadingCategories = true;
   bool _isLoadingImages = true;
+  bool _isSubmitting = false;
+  bool _hasPopped = false;
 
   static const int _maxImages = 10;
 
@@ -160,12 +162,17 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
   }
 
   void _submitForm() {
+    if (_isSubmitting || _hasPopped) return;
     if (_formKey.currentState!.validate()) {
       final name = _nameController.text.trim();
       final desc = _descController.text.trim();
       final price =
           double.tryParse(_priceController.text.replaceAll(RegExp(r'[^0-9.]'), '')) ?? 0.0;
       final stock = int.tryParse(_stockController.text.trim());
+
+      setState(() {
+        _isSubmitting = true;
+      });
 
       context.read<MarketplaceBloc>().add(
             UpdateProduct(
@@ -558,17 +565,32 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
     return BlocListener<MarketplaceBloc, MarketplaceState>(
       listener: (context, state) {
         if (state is MarketplaceError) {
+          if (_isSubmitting && mounted) {
+            setState(() {
+              _isSubmitting = false;
+            });
+          }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         } else if (state is MarketplaceLoaded) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Produk berhasil diperbarui!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context);
+          if (_isSubmitting && !_hasPopped) {
+            _hasPopped = true;
+            if (mounted) {
+              setState(() {
+                _isSubmitting = false;
+              });
+            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Produk berhasil diperbarui!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context, true);
+            }
+          }
         }
       },
       child: Scaffold(
@@ -576,36 +598,26 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
         body: SafeArea(
           child: BlocBuilder<MarketplaceBloc, MarketplaceState>(
             builder: (context, state) {
-              if (state is MarketplaceLoading) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const CircularProgressIndicator(color: Color(0xFF3873B2)),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Menyimpan perubahan...',
-                        style: TextStyle(
-                          color: Colors.grey[700],
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
+              final isLoading = (state is MarketplaceLoading) || _isSubmitting;
 
-              return Column(
+              return Stack(
                 children: [
-                  // --- Header ---
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                    child: Row(
+                  AbsorbPointer(
+                    absorbing: isLoading,
+                    child: Column(
                       children: [
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(
+                        // --- Header ---
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  if (_hasPopped || _isSubmitting) return;
+                                  _hasPopped = true;
+                                  Navigator.pop(context, false);
+                                },
+                                child: Container(
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
@@ -784,7 +796,7 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                onPressed: _submitForm,
+                                onPressed: _isSubmitting ? null : _submitForm,
                                 child: const Text(
                                   'Simpan',
                                   style: TextStyle(
@@ -804,9 +816,33 @@ class _UpdateProductPageState extends State<UpdateProductPage> {
                     ),
                   ),
                 ],
-              );
-            },
-          ),
+              ),
+            ),
+            if (isLoading)
+              Container(
+                color: Colors.white.withValues(alpha: 0.7),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(color: Color(0xFF3873B2)),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Menyimpan perubahan...',
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    ),
         ),
       ),
     );

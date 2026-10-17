@@ -311,6 +311,7 @@ class _OrderPageState extends State<OrderPage> {
               context,
               MaterialPageRoute(
                 builder: (context) => OrderDetailPage(
+                  orderId: 'ID20346-218',
                   paymentMethod: order.methodText,
                   productTitle: order.productTitle,
                   price: order.price,

@@ -1,4 +1,7 @@
 import 'package:brawigo/core/utils/seller_profile_checker.dart';
+import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
+import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
+import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_state.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/widgets/custom_search.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/widgets/header.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/widgets/seller_product_card.dart';
@@ -6,11 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:brawigo/features/marketplace/presentation/pages/product_detail_page.dart';
-import 'package:brawigo/features/marketplace/presentation/pages/update_product_page.dart';
-import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
-import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
-import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_state.dart';
 
 class MarketPlaceSellerPage extends StatefulWidget {
   final VoidCallback? onNavigateToProfile;
@@ -72,21 +70,6 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
     super.dispose();
   }
 
-  String _formatCurrency(dynamic amount) {
-    final int value = (amount as num?)?.toInt() ?? 0;
-    String valStr = value.toString();
-    String result = '';
-    int count = 0;
-    for (int i = valStr.length - 1; i >= 0; i--) {
-      if (count != 0 && count % 3 == 0) {
-        result = '.$result';
-      }
-      result = valStr[i] + result;
-      count++;
-    }
-    return result;
-  }
-
   void _showDeleteDialog(BuildContext context, Map<String, dynamic> product) {
     if (!_requireProfileComplete()) return;
     final productId = product['id'].toString();
@@ -137,9 +120,7 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Header(
-                onRoleSwitch: () => context.go('/buyer'),
-              ),
+              child: Header(onRoleSwitch: () => context.go('/buyer')),
             ),
             if (_profileStatus != null && !_profileStatus!.isComplete) ...[
               const SizedBox(height: 12),
@@ -163,7 +144,11 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 26),
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Color(0xFFD97706),
+                          size: 26,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
@@ -171,16 +156,27 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
                             children: [
                               const Text(
                                 "Pengaturan Toko Belum Lengkap",
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF92400E)),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Color(0xFF92400E),
+                                ),
                               ),
                               Text(
                                 "Belum ada: ${_profileStatus!.missingFields.join(', ')}. Klik di sini untuk melengkapi profil.",
-                                style: const TextStyle(fontSize: 11, color: Color(0xFFB45309)),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFFB45309),
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFD97706), size: 14),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: Color(0xFFD97706),
+                          size: 14,
+                        ),
                       ],
                     ),
                   ),

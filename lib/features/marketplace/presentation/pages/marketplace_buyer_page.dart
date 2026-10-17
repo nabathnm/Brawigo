@@ -1,18 +1,15 @@
 import 'dart:async';
 import 'dart:ui';
+
+import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../bloc/marketplace_bloc.dart';
 import '../bloc/marketplace_state.dart';
 import 'buyer_product_detail_page.dart';
-import 'buyer_search_page.dart';
-import 'package:brawigo/features/chat/presentation/pages/chat_list_page.dart';
-import 'order_page.dart';
-import 'package:brawigo/features/profile/presentation/pages/profile_page.dart';
 
 class MarketplaceBuyerPage extends StatefulWidget {
   final bool hideBottomNav;

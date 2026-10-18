@@ -80,55 +80,21 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Future<void> _pickImages() async {
-    if (_isSubmitting || _selectedImages.length >= 10) {
-      return;
-    }
-
     try {
       debugPrint('[IMAGE PICKER] Membuka pemilih gambar');
 
-      final images = await _picker.pickMultiImage(imageQuality: 85);
+      final image = await _picker.pickImage(source: ImageSource.gallery);
 
-      debugPrint('[IMAGE PICKER] Jumlah file: ${images.length}');
-      for (final image in images) {
-        debugPrint('[IMAGE PICKER] Nama: ${image.name}, path: ${image.path}');
-      }
+      debugPrint('[IMAGE PICKER] Hasil: ${image?.name ?? "NULL"}');
 
-      if (!mounted || images.isEmpty) return;
-
-      final remaining = 10 - _selectedImages.length;
-
-      if (remaining <= 0) return;
+      if (!mounted || image == null) return;
 
       setState(() {
-        _selectedImages.addAll(images.take(remaining));
+        _selectedImages.add(image);
       });
-
-      debugPrint(
-        '[IMAGE PICKER] Jumlah gambar dalam state: '
-        '${_selectedImages.length}',
-      );
-
-      if (images.length > remaining) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Maksimal 10 foto. Sebagian foto tidak ditambahkan.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
     } catch (error, stackTrace) {
       debugPrint('[IMAGE PICKER] Error: $error');
       debugPrintStack(stackTrace: stackTrace);
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gagal memilih gambar: $error'),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 

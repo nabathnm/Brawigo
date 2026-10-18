@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/update_product_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/widgets/full_screen_image_viewer.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProductDetailPage extends StatefulWidget {
   final Map<String, dynamic> product;
@@ -48,7 +48,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       if (productId.isEmpty) {
         setState(() {
           _images = [];
-          final thumb = _currentProduct['thumbnail_url'] ?? _currentProduct['image_url'];
+          final thumb =
+              _currentProduct['thumbnail_url'] ?? _currentProduct['image_url'];
           if (thumb != null && thumb.toString().isNotEmpty) {
             _images.add(thumb.toString());
           }
@@ -71,7 +72,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
               .toList();
 
           if (_images.isEmpty) {
-            final thumb = _currentProduct['thumbnail_url'] ?? _currentProduct['image_url'];
+            final thumb =
+                _currentProduct['thumbnail_url'] ??
+                _currentProduct['image_url'];
             if (thumb != null && thumb.toString().isNotEmpty) {
               _images.add(thumb.toString());
             }
@@ -82,7 +85,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          final thumb = _currentProduct['thumbnail_url'] ?? _currentProduct['image_url'];
+          final thumb =
+              _currentProduct['thumbnail_url'] ?? _currentProduct['image_url'];
           if (thumb != null && thumb.toString().isNotEmpty) {
             _images = [thumb.toString()];
           }
@@ -104,8 +108,11 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
           .maybeSingle();
 
       if (response != null && mounted) {
-        final Map<String, dynamic> updatedMap = Map<String, dynamic>.from(response);
-        if (response['categories'] != null && response['categories']['category_name'] != null) {
+        final Map<String, dynamic> updatedMap = Map<String, dynamic>.from(
+          response,
+        );
+        if (response['categories'] != null &&
+            response['categories']['category_name'] != null) {
           updatedMap['category_name'] = response['categories']['category_name'];
         }
 
@@ -155,12 +162,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   Widget build(BuildContext context) {
     final name = _currentProduct['product_name']?.toString() ?? 'Tanpa Nama';
-    final categoryName = _currentProduct['category_name']?.toString() ?? 'Alat Elektronik';
+    final categoryName =
+        _currentProduct['category_name']?.toString() ?? 'Alat Elektronik';
     final priceVal = _currentProduct['price'] ?? 0;
     final formattedPrice = _formatCurrency(priceVal);
     final stock = (_currentProduct['stock'] as num?)?.toInt() ?? 0;
     final status = _currentProduct['status']?.toString() ?? 'active';
-    final description = _currentProduct['description']?.toString() ?? 'Tidak ada deskripsi produk.';
+    final description =
+        _currentProduct['description']?.toString() ??
+        'Tidak ada deskripsi produk.';
 
     // Status Badge styling
     String badgeText = 'Aktif Dijual';
@@ -203,37 +213,40 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               ? Container(
                                   color: const Color(0xFFF1F5F9),
                                   child: const Center(
-                                    child: CircularProgressIndicator(color: Color(0xFF2B5F9E)),
+                                    child: CircularProgressIndicator(
+                                      color: Color(0xFF2B5F9E),
+                                    ),
                                   ),
                                 )
                               : _images.isNotEmpty
-                                  ? PageView.builder(
-                                      controller: _pageController,
-                                      itemCount: _images.length,
-                                      onPageChanged: (index) {
-                                        setState(() {
-                                          _currentImageIndex = index;
-                                        });
-                                      },
-                                      itemBuilder: (context, index) {
-                                        return GestureDetector(
-                                          onTap: () => FullScreenImageViewer.open(
-                                            context,
-                                            images: _images,
-                                            initialIndex: index,
-                                            title: name,
-                                          ),
-                                          child: Image.network(
-                                            _images[index],
-                                            width: double.infinity,
-                                            height: 360,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : _buildPlaceholderImage(),
+                              ? PageView.builder(
+                                  controller: _pageController,
+                                  itemCount: _images.length,
+                                  onPageChanged: (index) {
+                                    setState(() {
+                                      _currentImageIndex = index;
+                                    });
+                                  },
+                                  itemBuilder: (context, index) {
+                                    return GestureDetector(
+                                      onTap: () => FullScreenImageViewer.open(
+                                        context,
+                                        images: _images,
+                                        initialIndex: index,
+                                        title: name,
+                                      ),
+                                      child: Image.network(
+                                        _images[index],
+                                        width: double.infinity,
+                                        height: 360,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            _buildPlaceholderImage(),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : _buildPlaceholderImage(),
                         ),
 
                         // Tombol Back Melayang ke Halaman Seller
@@ -321,7 +334,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           ),
 
                         // Panah Kanan Navigasi Gambar jika ada lebih dari 1 gambar
-                        if (_images.length > 1 && _currentImageIndex < _images.length - 1)
+                        if (_images.length > 1 &&
+                            _currentImageIndex < _images.length - 1)
                           Positioned(
                             right: 12,
                             top: 160,
@@ -354,7 +368,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             bottom: 14,
                             right: 16,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.black.withAlpha(120),
                                 borderRadius: BorderRadius.circular(20),
@@ -382,7 +399,10 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
                                 decoration: BoxDecoration(
                                   color: badgeBg,
                                   borderRadius: BorderRadius.circular(8),
@@ -398,11 +418,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                               ),
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF1F5F9),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                                  border: Border.all(
+                                    color: const Color(0xFFE2E8F0),
+                                  ),
                                 ),
                                 child: Text(
                                   categoryName,
@@ -442,11 +467,16 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
                           // Card Informasi Stok
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              border: Border.all(
+                                color: const Color(0xFFE2E8F0),
+                              ),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withAlpha(6),
@@ -472,7 +502,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         "Stok Produk",
@@ -495,9 +526,14 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: stock > 0 ? const Color(0xFFF0FDF4) : const Color(0xFFFEF2F2),
+                                    color: stock > 0
+                                        ? const Color(0xFFF0FDF4)
+                                        : const Color(0xFFFEF2F2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
@@ -505,7 +541,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
-                                      color: stock > 0 ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                      color: stock > 0
+                                          ? const Color(0xFF16A34A)
+                                          : const Color(0xFFDC2626),
                                     ),
                                   ),
                                 ),
@@ -532,7 +570,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              border: Border.all(
+                                color: const Color(0xFFE2E8F0),
+                              ),
                             ),
                             child: Text(
                               description,
@@ -608,11 +648,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
       width: double.infinity,
       color: const Color(0xFFE2E8F0),
       child: const Center(
-        child: Icon(
-          Icons.image_outlined,
-          size: 64,
-          color: Color(0xFF94A3B8),
-        ),
+        child: Icon(Icons.image_outlined, size: 64, color: Color(0xFF94A3B8)),
       ),
     );
   }

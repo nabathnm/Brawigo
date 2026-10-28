@@ -39,6 +39,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   // Seller Form Controllers
   final _storeNameController = TextEditingController();
+  final _storeDescriptionController = TextEditingController();
+  final _storeLinkController = TextEditingController();
   final _storeAddressController = TextEditingController();
   final _storePhoneController = TextEditingController();
   String? _storePhotoUrl;
@@ -72,6 +74,8 @@ class _ProfilePageState extends State<ProfilePage> {
     _buyerAddressController.dispose();
 
     _storeNameController.dispose();
+    _storeDescriptionController.dispose();
+    _storeLinkController.dispose();
     _storeAddressController.dispose();
     _storePhoneController.dispose();
     _bankNameController.dispose();
@@ -146,6 +150,12 @@ class _ProfilePageState extends State<ProfilePage> {
       _storeNameController.text = bioMap['store_name']?.toString() ??
           meta['store_name']?.toString() ??
           (username.isNotEmpty ? username : fullName);
+      _storeDescriptionController.text = bioMap['store_description']?.toString() ??
+          meta['store_description']?.toString() ??
+          '';
+      _storeLinkController.text = bioMap['store_link']?.toString() ??
+          meta['store_link']?.toString() ??
+          '';
       _storeAddressController.text = bioMap['store_address']?.toString() ??
           meta['store_address']?.toString() ??
           '';
@@ -370,6 +380,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
       final bioMap = _parseBio(_profileData?['bio']);
       bioMap['store_name'] = _storeNameController.text.trim();
+      bioMap['store_description'] = _storeDescriptionController.text.trim();
+      bioMap['store_link'] = _storeLinkController.text.trim();
       bioMap['store_address'] = _storeAddressController.text.trim();
       bioMap['store_phone'] = _storePhoneController.text.trim();
       if (_storePhotoUrl != null) bioMap['store_photo_url'] = _storePhotoUrl;
@@ -789,6 +801,23 @@ class _ProfilePageState extends State<ProfilePage> {
                 icon: Icons.store_rounded,
                 validator: (v) => v == null || v.trim().isEmpty ? 'Nama toko wajib diisi' : null,
                 helperText: "Nama ini yang akan muncul di bawah detail produk pembeli",
+              ),
+              const SizedBox(height: 14),
+              _buildTextField(
+                controller: _storeDescriptionController,
+                label: "Deskripsi Toko",
+                icon: Icons.description_outlined,
+                maxLines: 3,
+                hint: "Ceritakan singkat mengenai tokomu...",
+                helperText: "Deskripsi ini akan muncul di profil tokomu",
+              ),
+              const SizedBox(height: 14),
+              _buildTextField(
+                controller: _storeLinkController,
+                label: "Tautan Toko",
+                icon: Icons.link_rounded,
+                hint: "brawigo.id/toko/namatoko",
+                helperText: "Tautan profil toko untuk dibagikan ke calon pembeli",
               ),
               const SizedBox(height: 14),
               _buildTextField(

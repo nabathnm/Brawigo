@@ -7,7 +7,7 @@ import 'package:brawigo/features/marketplace/presentation/pages/marketplace_sell
 import 'package:brawigo/features/marketplace/presentation/pages/add_product_page.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
 import 'package:brawigo/features/chat/presentation/pages/chat_list_page.dart';
-import 'package:brawigo/features/profile/presentation/pages/profile_page.dart';
+import 'package:brawigo/features/profile/presentation/pages/profile_hub_page.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_bloc.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_state.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_bloc.dart';
@@ -69,7 +69,7 @@ class _MainScreenState extends State<MainScreen> {
               ..add(_isSeller ? LoadSellerOrders() : LoadBuyerOrders()),
         child: OrderListPage(isSeller: _isSeller),
       ),
-      ProfilePage(isSeller: _isSeller),
+      ProfileHubPage(isSeller: _isSeller),
     ];
 
     if (_isSeller) {

@@ -1,3 +1,4 @@
+import '../../../../core/widgets/brawigo_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -44,10 +45,10 @@ class _RegisterPageState extends State<RegisterPage> {
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Color.fromARGB(255, 154, 154, 154), 
-                  blurRadius: 5, 
-                  spreadRadius: 0.5, 
-                  offset: const Offset( 0,2), 
+                  color: Color.fromARGB(255, 154, 154, 154),
+                  blurRadius: 5,
+                  spreadRadius: 0.5,
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
@@ -73,276 +74,308 @@ class _RegisterPageState extends State<RegisterPage> {
             colors: [
               BrawigoColors.blue200,
               Colors.white,
-            ], 
+            ],
             stops: [0.0, 0.4],
           ),
         ),
         child: BlocConsumer<AuthBloc, AuthState>(
           listener: (context, state) {
             if (state is AuthError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: BrawigoColors.redNormal,
-                ),
+              BrawigoToast.showError(
+                context,
+                message: state.message,
+                title: 'Gagal Mendaftar',
               );
             } else if (state is AuthNeedsVerification) {
+              BrawigoToast.showInfo(
+                context,
+                message: 'Kode OTP telah dikirimkan ke email Anda. Silakan verifikasi.',
+                title: 'Verifikasi Akun',
+              );
               context.push('/otp', extra: state.email);
             }
           },
           builder: (context, state) {
+            final isKeyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+
             return SafeArea(
-              child: CustomScrollView(
-                slivers: [
-                  SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: BrawigoSizes.md, 
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
                       ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const SizedBox(height: 160),
+                      child: IntrinsicHeight(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: BrawigoSizes.md,
+                          ),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(height: isKeyboardOpen ? 12 : 36),
 
-                            Center(
-                              child: Image.asset(
-                                'assets/images/logo_brawigo.png',
-                                height: 100,
-                                fit: BoxFit.contain,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(
-                                      Icons.card_giftcard,
-                                      size: 80,
+                                Center(
+                                  child: Image.asset(
+                                    'assets/images/logo_brawigo.png',
+                                    height: isKeyboardOpen ? 60 : 90,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) =>
+                                        Icon(
+                                          Icons.card_giftcard,
+                                          size: isKeyboardOpen ? 50 : 75,
+                                          color: BrawigoColors.blue800,
+                                        ),
+                                  ),
+                                ),
+                                SizedBox(
+                                  height: isKeyboardOpen
+                                      ? 8
+                                      : BrawigoSizes.defaultSpace,
+                                ),
+
+                                const Text(
+                                  'Daftar Akun',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                    color: BrawigoColors.blue800,
+                                  ),
+                                ),
+                                const SizedBox(height: BrawigoSizes.sm),
+
+                                const Text(
+                                  'Gunakan email Universitas Brawijaya\nuntuk mendaftar.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: BrawigoColors.blue800,
+                                    fontSize: BrawigoSizes.fontSizeMd,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.2,
+                                  ),
+                                ),
+
+                                SizedBox(height: isKeyboardOpen ? 16 : 28),
+
+                                TextFormField(
+                                  controller: _emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  textInputAction: TextInputAction.next,
+                                  style: const TextStyle(
+                                    fontSize: BrawigoSizes.fontSizeSm,
+                                    color: BrawigoColors.blue950,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Email UB',
+                                    hintStyle: const TextStyle(
                                       color: BrawigoColors.blue800,
+                                      fontSize: BrawigoSizes.fontSizeSm,
                                     ),
-                              ),
-                            ),
-                            const SizedBox(height: BrawigoSizes.defaultSpace),
-
-                            const Text(
-                              'Daftar Akun',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                                color: BrawigoColors.blue800,
-                              ),
-                            ),
-                            const SizedBox(height: BrawigoSizes.sm),
-
-                            const Text(
-                              'Gunakan email Universitas Brawijaya\nuntuk mendaftar.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: BrawigoColors.blue800,
-                                fontSize: BrawigoSizes.fontSizeMd,
-                                fontWeight: FontWeight.w600,
-                                height: 1.2,
-                              ),
-                            ),
-
-                            const Spacer(), 
-
-                            TextFormField(
-                              controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
-                              textInputAction: TextInputAction.next,
-                              style: const TextStyle(
-                                fontSize: BrawigoSizes.fontSizeSm,
-                                color: BrawigoColors.blue950,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: 'Email UB',
-                                hintStyle: const TextStyle(
-                                  color: BrawigoColors.blue800,
-                                  fontSize: BrawigoSizes.fontSizeSm,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.email_outlined,
-                                  color: BrawigoColors.blue800,
-                                  size: BrawigoSizes.iconMd,
-                                ),
-                                filled: true,
-                                fillColor: Colors.white,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: BrawigoSizes.md,
-                                  vertical: BrawigoSizes.md,
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    BrawigoSizes.inputFieldRadius,
-                                  ),
-                                  borderSide: const BorderSide(
-                                    color: BrawigoColors.blue800,
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    BrawigoSizes.inputFieldRadius,
-                                  ),
-                                  borderSide: const BorderSide(
-                                    color: BrawigoColors.blue800,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    BrawigoSizes.inputFieldRadius,
-                                  ),
-                                  borderSide: const BorderSide(
-                                    color: BrawigoColors.blue800,
-                                    width: 1.5,
-                                  ),
-                                ),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return 'Email tidak boleh kosong';
-                                }
-                                if (!value.endsWith('@ub.ac.id') &&
-                                    !value.endsWith('@student.ub.ac.id')) {
-                                  return 'Gunakan email resmi UB (@ub.ac.id / @student.ub.ac.id)';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(
-                              height: BrawigoSizes.spaceBtwInputFields,
-                            ),
-
-                            CustomPasswordField(
-                              hintText: 'Password',
-                              controller: _passwordController,
-                              validator: (value) =>
-                                  (value != null && value.length < 8)
-                                  ? 'Password minimal 8 karakter'
-                                  : null,
-                            ),
-                            const SizedBox(
-                              height: BrawigoSizes.spaceBtwInputFields,
-                            ),
-
-                            CustomPasswordField(
-                              hintText: 'Konfirmasi Password',
-                              controller: _confirmPasswordController,
-                              validator: (value) {
-                                if (value != _passwordController.text) {
-                                  return 'Password tidak cocok';
-                                }
-                                return null;
-                              },
-                            ),
-
-                            const Spacer(), 
-
-                            SizedBox(
-                              height: 48,
-                              width: double.infinity,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(
-                                    BrawigoSizes.buttonRadius,
-                                  ),
-                                  gradient: LinearGradient(
-                                    colors: state is AuthLoading
-                                        ? [
-                                            BrawigoColors.blue300,
-                                            BrawigoColors.blue300,
-                                          ]
-                                        : [
-                                            BrawigoColors.blue400,
-                                            BrawigoColors.blue600,
-                                          ],
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                  ),
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: state is AuthLoading
-                                      ? null
-                                      : () {
-                                          if (_formKey.currentState!
-                                              .validate()) {
-                                            context.read<AuthBloc>().add(
-                                              RegisterRequested(
-                                                email: _emailController.text
-                                                    .trim(),
-                                                password:
-                                                    _passwordController.text,
-                                              ),
-                                            );
-                                          }
-                                        },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.transparent,
-                                    shadowColor: Colors.transparent,
-                                    padding: const EdgeInsets.symmetric(
+                                    prefixIcon: const Icon(
+                                      Icons.email_outlined,
+                                      color: BrawigoColors.blue800,
+                                      size: BrawigoSizes.iconMd,
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: BrawigoSizes.md,
                                       vertical: BrawigoSizes.md,
                                     ),
-                                    shape: RoundedRectangleBorder(
+                                    border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(
-                                        BrawigoSizes.buttonRadius,
+                                        BrawigoSizes.inputFieldRadius,
+                                      ),
+                                      borderSide: const BorderSide(
+                                        color: BrawigoColors.blue800,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        BrawigoSizes.inputFieldRadius,
+                                      ),
+                                      borderSide: const BorderSide(
+                                        color: BrawigoColors.blue800,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        BrawigoSizes.inputFieldRadius,
+                                      ),
+                                      borderSide: const BorderSide(
+                                        color: BrawigoColors.blue800,
+                                        width: 1.5,
                                       ),
                                     ),
                                   ),
-                                  child: state is AuthLoading
-                                      ? const SizedBox(
-                                          height: 24,
-                                          width: 24,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2.5,
-                                          ),
-                                        )
-                                      : const Text(
-                                          'Kirim Kode OTP',
-                                          style: TextStyle(
-                                            fontSize: BrawigoSizes.fontSizeSm,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.normal,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Email tidak boleh kosong';
+                                    }
+                                    if (!value.endsWith('@ub.ac.id') &&
+                                        !value.endsWith('@student.ub.ac.id')) {
+                                      return 'Gunakan email resmi UB (@ub.ac.id / @student.ub.ac.id)';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(
+                                  height: BrawigoSizes.spaceBtwInputFields,
+                                ),
+
+                                CustomPasswordField(
+                                  hintText: 'Password',
+                                  controller: _passwordController,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Password tidak boleh kosong';
+                                    }
+                                    if (value.length < 6) {
+                                      return 'Password minimal 6 karakter';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(
+                                  height: BrawigoSizes.spaceBtwInputFields,
+                                ),
+
+                                CustomPasswordField(
+                                  hintText: 'Konfirmasi Password',
+                                  controller: _confirmPasswordController,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Konfirmasi password tidak boleh kosong';
+                                    }
+                                    if (value != _passwordController.text) {
+                                      return 'Password tidak cocok';
+                                    }
+                                    return null;
+                                  },
+                                ),
+
+                                const Spacer(),
+
+                                SizedBox(height: isKeyboardOpen ? 16 : 24),
+
+                                SizedBox(
+                                  height: 48,
+                                  width: double.infinity,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(
+                                        BrawigoSizes.buttonRadius,
+                                      ),
+                                      gradient: LinearGradient(
+                                        colors: state is AuthLoading
+                                            ? [
+                                                BrawigoColors.blue300,
+                                                BrawigoColors.blue300,
+                                              ]
+                                            : [
+                                                BrawigoColors.blue400,
+                                                BrawigoColors.blue600,
+                                              ],
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
+                                    ),
+                                    child: ElevatedButton(
+                                      onPressed: state is AuthLoading
+                                          ? null
+                                          : () {
+                                              if (_formKey.currentState!
+                                                  .validate()) {
+                                                context.read<AuthBloc>().add(
+                                                  RegisterRequested(
+                                                    email: _emailController.text
+                                                        .trim(),
+                                                    password:
+                                                        _passwordController.text,
+                                                  ),
+                                                );
+                                              }
+                                            },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.transparent,
+                                        shadowColor: Colors.transparent,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: BrawigoSizes.md,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            BrawigoSizes.buttonRadius,
                                           ),
                                         ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: BrawigoSizes.defaultSpace),
-
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  "Sudah punya akun? ",
-                                  style: TextStyle(
-                                    color: BrawigoColors.blue800,
-                                    fontSize: BrawigoSizes.fontSizeSm,
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    context.pop();
-                                  },
-                                  child: const Text(
-                                    "Masuk",
-                                    style: TextStyle(
-                                      color: BrawigoColors.blue800,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: BrawigoSizes.fontSizeSm,
-                                      decoration: TextDecoration.underline,
+                                      ),
+                                      child: state is AuthLoading
+                                          ? const SizedBox(
+                                              height: 24,
+                                              width: 24,
+                                              child:
+                                                  CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2.5,
+                                              ),
+                                            )
+                                          : const Text(
+                                              'Kirim Kode OTP',
+                                              style: TextStyle(
+                                                fontSize:
+                                                    BrawigoSizes.fontSizeSm,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.normal,
+                                              ),
+                                            ),
                                     ),
                                   ),
                                 ),
+                                const SizedBox(
+                                  height: BrawigoSizes.defaultSpace,
+                                ),
+
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Text(
+                                      "Sudah punya akun? ",
+                                      style: TextStyle(
+                                        color: BrawigoColors.blue800,
+                                        fontSize: BrawigoSizes.fontSizeSm,
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        context.pop();
+                                      },
+                                      child: const Text(
+                                        "Masuk",
+                                        style: TextStyle(
+                                          color: BrawigoColors.blue800,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: BrawigoSizes.fontSizeSm,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                SizedBox(height: isKeyboardOpen ? 16 : 32),
                               ],
                             ),
-
-                            const SizedBox(height: 64),
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
             );
           },

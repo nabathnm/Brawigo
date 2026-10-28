@@ -1,3 +1,5 @@
+import 'package:brawigo/features/marketplace/presentation/pages/manage_products_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/seller_earnings_page.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_bloc.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_event.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/checkout_page.dart' as marketplace_checkout;
@@ -12,6 +14,8 @@ import '../../features/auth/presentation/pages/complete_profile_page.dart';
 import '../../features/marketplace/presentation/pages/main_screen.dart';
 import '../../features/auth/presentation/pages/set_photo_page.dart';
 import '../../features/auth/presentation/pages/onboarding_success_page.dart';
+import '../../features/auth/presentation/pages/forgot_password_page.dart';
+import '../../features/auth/presentation/pages/reset_password_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
@@ -39,6 +43,17 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/onboarding-success',
       builder: (context, state) => const OnboardingSuccessPage(),
+    ),
+    GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordPage(),
+    ),
+    GoRoute(
+      path: '/reset-password',
+      builder: (context, state) {
+        final email = (state.extra as String?) ?? '';
+        return ResetPasswordPage(email: email);
+      },
     ),
     GoRoute(
       path: '/home',
@@ -121,6 +136,16 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-  ]
-  
+    GoRoute(
+      path: '/seller/earnings',
+      builder: (context, state) => const SellerEarningsPage(),
+    ),
+    GoRoute(
+      path: '/seller/manage-products',
+      builder: (context, state) => BlocProvider(
+        create: (context) => MarketplaceBloc()..add(LoadSellerProducts()),
+        child: const ManageProductsPage(),
+      ),
+    ),
+  ],
 );

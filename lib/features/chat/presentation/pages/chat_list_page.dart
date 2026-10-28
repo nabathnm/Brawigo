@@ -69,22 +69,35 @@ class _ChatListPageState extends State<ChatListPage> {
             .from('messages')
             .select('message, created_at, sender_id')
             .eq('conversation_id', conv['id'])
-            .order('created_at', ascending: false)
-            .limit(1);
+            .order('created_at', ascending: false);
+
+        // Abaikan pesan yang berkaitan dengan laporan
+        final nonReportMsgs = (lastMsgRes as List).where((m) {
+          final msgStr = (m['message'] ?? '').toString();
+          return !msgStr.contains('[LAPORAN]');
+        }).toList();
+
+        // Jika percakapan hanya berisi pesan laporan dan tidak ada pesan chat umum, jangan tampilkan di daftar chat
+        if (nonReportMsgs.isEmpty && (lastMsgRes as List).isNotEmpty) {
+          continue;
+        }
 
         final unreadRes = await _supabase
             .from('messages')
-            .select('id')
+            .select('id, message')
             .eq('conversation_id', conv['id'])
             .eq('is_read', false)
             .neq('sender_id', currentUser.id);
 
-        final lastMsg = (lastMsgRes as List).isNotEmpty ? lastMsgRes.first : null;
-        final unreadCount = (unreadRes as List).length;
+        final lastMsg = nonReportMsgs.isNotEmpty ? nonReportMsgs.first : null;
+        final unreadCount = (unreadRes as List)
+            .where((m) => !(m['message'] ?? '').toString().contains('[LAPORAN]'))
+            .length;
 
-        String lastMsgText = lastMsg?['message'] ?? 'Belum ada pesan';
-        if (lastMsgText.trim().startsWith('[IMAGE]:')) {
-          lastMsgText = '📷 Foto';
+        String rawMsgText = lastMsg?['message'] ?? 'Belum ada pesan';
+        String displayMsg = rawMsgText;
+        if (rawMsgText.trim().startsWith('[IMAGE]:')) {
+          displayMsg = '📷 Foto';
         }
 
         enrichedConvs.add({
@@ -92,7 +105,7 @@ class _ChatListPageState extends State<ChatListPage> {
           'other_user_id': otherId,
           'other_user_name': profileRes?['full_name'] ?? 'Pengguna',
           'other_user_photo': profileRes?['profile_photo_url'],
-          'last_message': lastMsgText,
+          'last_message': displayMsg,
           'last_message_time': lastMsg?['created_at'],
           'unread_count': unreadCount,
           'product_id': conv['product_id'],
@@ -176,7 +189,7 @@ class _ChatListPageState extends State<ChatListPage> {
             ),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF2B5F9E)))
                   : _conversations.isEmpty
                       ? Center(
                           child: Column(
@@ -265,17 +278,27 @@ class _ConversationTile extends StatelessWidget {
               )
             : null,
       ),
-      title: Text(
-        name,
-        style: const TextStyle(
-          fontWeight: FontWeight.w700,
-          fontSize: 15,
-          color: Color(0xFF15243C),
-        ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                color: Color(0xFF15243C),
+              ),
+            ),
+          ),
+        ],
       ),
       subtitle: Text(
         lastMessage,
-        style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+        style: const TextStyle(
+          color: Color(0xFF64748B),
+          fontSize: 13,
+          fontWeight: FontWeight.normal,
+        ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

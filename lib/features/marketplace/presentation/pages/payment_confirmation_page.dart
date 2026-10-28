@@ -1,3 +1,4 @@
+import '../../../../core/widgets/brawigo_toast.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -6,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:go_router/go_router.dart';
+import 'main_screen.dart';
 
 class PaymentConfirmationPage extends StatefulWidget {
   final Map<String, dynamic> checkoutData;
@@ -101,8 +102,10 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
   Future<void> _submitOrder() async {
     final paymentMethod = widget.checkoutData['payment_method'] as String?;
     if (paymentMethod != 'cash' && _proofImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Harap unggah screenshot bukti pembayaran terlebih dahulu.')),
+      BrawigoToast.showWarning(
+        context,
+        message: 'Harap unggah screenshot bukti transfer atau pembayaran Anda terlebih dahulu.',
+        title: 'Bukti Belum Diunggah',
       );
       return;
     }
@@ -119,11 +122,28 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
     try {
       final product = widget.checkoutData['product'] as Map;
-      final sellerId = product['seller_id']?.toString() ?? '';
+      var sellerId = product['seller_id']?.toString() ?? '';
       final productId = product['id']?.toString() ?? '';
       final productName = product['name'] ?? product['product_name'] ?? 'Produk';
-      final price = widget.checkoutData['price'] as double;
+      final dynamic rawPrice = widget.checkoutData['price'];
+      final double price = (rawPrice is num)
+          ? rawPrice.toDouble()
+          : (double.tryParse(rawPrice?.toString().replaceAll(RegExp(r'[^0-9.]'), '') ?? '0') ?? 0.0);
       final thumbnailUrl = product['image_url'] ?? product['thumbnail_url'] ?? '';
+
+      // Pastikan seller_id valid dan diambil langsung dari database produk jika kosong
+      if (sellerId.isEmpty && productId.isNotEmpty) {
+        try {
+          final pData = await _supabase
+              .from('products')
+              .select('seller_id')
+              .eq('id', productId)
+              .maybeSingle();
+          if (pData != null && pData['seller_id'] != null && pData['seller_id'].toString().isNotEmpty) {
+            sellerId = pData['seller_id'].toString();
+          }
+        } catch (_) {}
+      }
 
       String? uploadedProofUrl;
 
@@ -141,25 +161,74 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         uploadedProofUrl = _supabase.storage.from('product_images').getPublicUrl(fileName);
       }
 
+      final pickupMethod = widget.checkoutData['pickup_method']?.toString() ?? 'cod';
+      final sellerAddress = widget.checkoutData['seller_address']?.toString() ?? '';
+
       // 2. Insert ke tabel orders
-      await _supabase.from('orders').insert({
+      final Map<String, dynamic> orderInsertData = {
         'buyer_id': currentUser.id,
         'seller_id': sellerId.isNotEmpty ? sellerId : currentUser.id,
         'product_id': productId.isNotEmpty ? productId : null,
         'product_name_snapshot': productName,
         'product_price_snapshot': price,
         'thumbnail_url_snapshot': thumbnailUrl,
-        'quantity': 1,
+        'quantity': widget.checkoutData['quantity'] ?? 1,
         'total_amount': price,
         'payment_method': widget.checkoutData['payment_method_title'],
         'meetup_location': widget.checkoutData['meetup_location'] ?? widget.checkoutData['delivery_address'],
         'meetup_time': widget.checkoutData['meetup_time'],
         'notes': widget.checkoutData['notes'],
-        'order_status': 'created',
+        'order_status': 'waiting_confirmation',
         'status': 'pending',
         'payment_status': uploadedProofUrl != null ? 'paid' : 'pending',
         'payment_proof_url': uploadedProofUrl,
-      });
+        'pickup_method': pickupMethod,
+        'seller_address': sellerAddress,
+      };
+
+      try {
+        await _supabase.from('orders').insert(orderInsertData);
+      } catch (insertErr) {
+        final errStr = insertErr.toString();
+        if (errStr.contains('pickup_method') || errStr.contains('seller_address')) {
+          orderInsertData.remove('pickup_method');
+          orderInsertData.remove('seller_address');
+          await _supabase.from('orders').insert(orderInsertData);
+        } else {
+          rethrow;
+        }
+      }
+
+      // 2b. Kurangi stok barang di tabel products
+      if (productId.isNotEmpty) {
+        final purchasedQty = ((widget.checkoutData['quantity'] ?? 1) as num).toInt();
+        // Coba panggil RPC reduce_product_stock jika tersedia di database
+        try {
+          await _supabase.rpc('reduce_product_stock', params: {
+            'p_product_id': productId,
+            'p_quantity': purchasedQty,
+          });
+        } catch (_) {
+          // Fallback langsung update tabel products
+          try {
+            final pRes = await _supabase
+                .from('products')
+                .select('stock')
+                .eq('id', productId)
+                .maybeSingle();
+            if (pRes != null && pRes['stock'] != null) {
+              final curStock = (pRes['stock'] as num).toInt();
+              final nextStock = (curStock - purchasedQty).clamp(0, 999999);
+              await _supabase
+                  .from('products')
+                  .update({'stock': nextStock})
+                  .eq('id', productId);
+            }
+          } catch (updateStockErr) {
+            debugPrint('Catatan: update stok client: $updateStockErr');
+          }
+        }
+      }
 
       // 3. Kirim pesan konfirmasi otomatis ke conversation chat
       if (sellerId.isNotEmpty && sellerId != currentUser.id) {
@@ -233,7 +302,13 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                 ),
                 onPressed: () {
                   Navigator.pop(dialogContext);
-                  context.go('/home', extra: 3);
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const MainScreen(initialIndex: 3, isSeller: false),
+                    ),
+                    (route) => false,
+                  );
                 },
                 child: const Text("Lihat Riwayat Pesanan", style: TextStyle(color: Colors.white)),
               ),
@@ -243,8 +318,10 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengirim pesanan: ${e.toString()}')),
+        BrawigoToast.showError(
+          context,
+          message: e,
+          title: 'Gagal Membuat Pesanan',
         );
       }
     } finally {
@@ -565,8 +642,10 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
               InkWell(
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: _sellerAccountNumber));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Nomor rekening berhasil disalin!')),
+                  BrawigoToast.showSuccess(
+                    context,
+                    message: 'Nomor rekening $_sellerAccountNumber berhasil disalin.',
+                    title: 'Tersalin!',
                   );
                 },
                 child: Container(

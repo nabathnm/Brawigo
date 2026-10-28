@@ -1,3 +1,4 @@
+import '../../../../core/widgets/brawigo_toast.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -14,7 +15,7 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  // Pickup method: 'cod', 'pickup', 'kurir'
+  // Pickup method: 'pickup', 'kurir'
   String? _selectedPickupMethod;
   String _pickupMethodTitle = '';
   String _pickupMethodSubtitle = '';
@@ -29,6 +30,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
   String? _selectedPaymentMethod;
   String _paymentMethodTitle = '';
   String _paymentMethodSubtitle = '';
+
+  // Quantity
+  int _quantity = 1;
 
   // Notes
   final _notesController = TextEditingController();
@@ -119,6 +123,74 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return double.tryParse(cleanStr) ?? 0.0;
   }
 
+  int get _maxStock {
+    final stock = widget.product['stock'];
+    if (stock == null) return 99;
+    if (stock is int) return stock;
+    return int.tryParse(stock.toString()) ?? 99;
+  }
+
+  double get _totalPrice => _productPrice * _quantity;
+
+  Future<void> _pickDateTime() async {
+    final now = DateTime.now();
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 30)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF2B5F9E),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF15243C),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate == null || !mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 10, minute: 0),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF2B5F9E),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF15243C),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedTime == null || !mounted) return;
+
+    final combined = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    setState(() {
+      try {
+        _meetupTimeController.text = "${DateFormat('EEEE, d MMMM yyyy, HH:mm', 'id_ID').format(combined)} WIB";
+      } catch (_) {
+        _meetupTimeController.text = "${DateFormat('dd/MM/yyyy HH:mm').format(combined)} WIB";
+      }
+    });
+  }
+
   void _showPickupBottomSheet() {
     showModalBottomSheet(
       context: context,
@@ -128,7 +200,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        String tempSelected = _selectedPickupMethod ?? 'cod';
+        String tempSelected = _selectedPickupMethod ?? 'pickup';
         return StatefulBuilder(
           builder: (context, setModalState) {
             return SafeArea(
@@ -159,16 +231,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     ),
                     const SizedBox(height: 16),
                     _buildRadioOption(
-                      title: "Cash on Delivery (COD)",
-                      subtitle: "Bertemu dengan penjual di sekitar area UB.",
-                      value: "cod",
-                      groupValue: tempSelected,
-                      onChanged: (val) => setModalState(() => tempSelected = val!),
-                    ),
-                    const SizedBox(height: 10),
-                    _buildRadioOption(
                       title: "Self Pick-Up",
-                      subtitle: "Ambil langsung di lokasi penjual.",
+                      subtitle: "Temui penjual dan ambil langsung barangmu.",
                       value: "pickup",
                       groupValue: tempSelected,
                       onChanged: (val) => setModalState(() => tempSelected = val!),
@@ -195,12 +259,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         onPressed: () {
                           setState(() {
                             _selectedPickupMethod = tempSelected;
-                            if (tempSelected == 'cod') {
-                              _pickupMethodTitle = "Cash on Delivery (COD)";
-                              _pickupMethodSubtitle = "Bertemu dengan penjual di sekitar area UB.";
-                            } else if (tempSelected == 'pickup') {
+                            if (tempSelected == 'pickup') {
                               _pickupMethodTitle = "Self Pick-Up";
-                              _pickupMethodSubtitle = "Ambil langsung di lokasi penjual.";
+                              _pickupMethodSubtitle = "Temui penjual dan ambil langsung barangmu.";
                             } else {
                               _pickupMethodTitle = "Kurir Instan";
                               _pickupMethodSubtitle = "Pesan sendiri layanan kurir instan pilihanmu.";
@@ -278,16 +339,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       groupValue: tempSelected,
                       onChanged: (val) => setModalState(() => tempSelected = val!),
                     ),
-                    if (_selectedPickupMethod == 'cod') ...[
-                      const SizedBox(height: 10),
-                      _buildRadioOption(
-                        title: "Tunai / COD",
-                        subtitle: "Bayar tunai saat bertemu penjual.",
-                        value: "cash",
-                        groupValue: tempSelected,
-                        onChanged: (val) => setModalState(() => tempSelected = val!),
-                      ),
-                    ],
+
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
@@ -390,26 +442,43 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   void _proceedToPayment() {
     if (_selectedPickupMethod == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih metode pengambilan barang terlebih dahulu.')),
+      BrawigoToast.showWarning(
+        context,
+        message: 'Pilih metode pengambilan barang terlebih dahulu.',
+        title: 'Pengambilan Barang Belum Dipilih',
       );
       return;
     }
     if (_selectedPaymentMethod == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih metode pembayaran terlebih dahulu.')),
+      BrawigoToast.showWarning(
+        context,
+        message: 'Pilih metode pembayaran yang ingin Anda gunakan.',
+        title: 'Metode Pembayaran Belum Dipilih',
+      );
+      return;
+    }
+
+    if (_selectedPickupMethod == 'kurir' && _deliveryAddressController.text.trim().isEmpty) {
+      BrawigoToast.showWarning(
+        context,
+        message: 'Masukkan alamat pengiriman Anda terlebih dahulu.',
+        title: 'Alamat Pengiriman Wajib Diisi',
       );
       return;
     }
 
     final Map<String, dynamic> checkoutData = {
       'product': widget.product,
-      'price': _productPrice,
+      'price': _totalPrice,
+
+      'quantity': _quantity,
       'pickup_method': _selectedPickupMethod,
       'pickup_method_title': _pickupMethodTitle,
       'payment_method': _selectedPaymentMethod,
       'payment_method_title': _paymentMethodTitle,
-      'meetup_location': _meetupLocationController.text.trim(),
+      'meetup_location': _selectedPickupMethod == 'kurir'
+          ? _deliveryAddressController.text.trim()
+          : _sellerAddress,
       'meetup_time': _meetupTimeController.text.trim(),
       'delivery_address': _deliveryAddressController.text.trim(),
       'seller_address': _sellerAddress,
@@ -533,13 +602,52 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               ],
                             ),
                           ),
-                          const Text(
-                            "1x",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF64748B),
-                            ),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  if (_quantity > 1) setState(() => _quantity--);
+                                },
+                                child: Container(
+                                  width: 30,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    color: _quantity > 1
+                                        ? const Color(0xFF2B5F9E)
+                                        : const Color(0xFFE2E8F0),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.remove, size: 16, color: Colors.white),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                child: Text(
+                                  '$_quantity',
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF15243C),
+                                  ),
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  if (_quantity < _maxStock) setState(() => _quantity++);
+                                },
+                                child: Container(
+                                  width: 30,
+                                  height: 30,
+                                  decoration: BoxDecoration(
+                                    color: _quantity < _maxStock
+                                        ? const Color(0xFF2B5F9E)
+                                        : const Color(0xFFE2E8F0),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.add, size: 16, color: Colors.white),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -601,20 +709,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           ),
 
                           // Sub-fields berdasarkan metode
-                          if (_selectedPickupMethod == 'cod') ...[
-                            const SizedBox(height: 12),
-                            _buildInputLabel("Lokasi Meetup"),
-                            _buildSubTextField(
-                              controller: _meetupLocationController,
-                              hintText: "Game Corner, Lantai 1 Gedung F FILKOM UB",
-                            ),
-                            const SizedBox(height: 10),
-                            _buildInputLabel("Tanggal dan Waktu Meetup"),
-                            _buildSubTextField(
-                              controller: _meetupTimeController,
-                              hintText: "Kamis, 9 Juli 2026, 10.00 WIB",
-                            ),
-                          ] else if (_selectedPickupMethod == 'pickup') ...[
+                          if (_selectedPickupMethod == 'pickup') ...[
                             const SizedBox(height: 12),
                             _buildInputLabel("Lokasi Penjual"),
                             Container(
@@ -631,9 +726,38 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             ),
                             const SizedBox(height: 10),
                             _buildInputLabel("Tanggal dan Waktu Pengambilan"),
-                            _buildSubTextField(
-                              controller: _meetupTimeController,
-                              hintText: "Kamis, 9 Juli 2026, 10.00 WIB",
+                            InkWell(
+                              onTap: _pickDateTime,
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: const Color(0xFFCBD5E1)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.calendar_month_rounded, size: 20, color: Color(0xFF2B5F9E)),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        _meetupTimeController.text.isNotEmpty
+                                            ? _meetupTimeController.text
+                                            : "Pilih Tanggal dan Waktu Pengambilan",
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: _meetupTimeController.text.isNotEmpty
+                                              ? const Color(0xFF15243C)
+                                              : const Color(0xFFA0AEC0),
+                                        ),
+                                      ),
+                                    ),
+                                    const Icon(Icons.access_time_rounded, size: 18, color: Color(0xFF64748B)),
+                                  ],
+                                ),
+                              ),
                             ),
                           ] else if (_selectedPickupMethod == 'kurir') ...[
                             const SizedBox(height: 12),
@@ -735,9 +859,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         children: [
                           _buildSummaryRow("Harga Produk", formattedPrice),
                           const SizedBox(height: 6),
-                          _buildSummaryRow("Jumlah", "1x"),
+                          _buildSummaryRow("Jumlah", "${_quantity}x"),
                           const Divider(height: 20),
-                          _buildSummaryRow("Subtotal", formattedPrice, isBold: true),
+                          _buildSummaryRow("Subtotal", _currencyFormat.format(_totalPrice), isBold: true),
                         ],
                       ),
                     ),
@@ -775,7 +899,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         ),
                       ),
                       Text(
-                        formattedPrice,
+                        _currencyFormat.format(_totalPrice),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,

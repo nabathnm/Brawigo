@@ -3,16 +3,16 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../bloc/marketplace_bloc.dart';
 import '../bloc/marketplace_state.dart';
+import '../bloc/marketplace_event.dart';
 import 'buyer_product_detail_page.dart';
-import 'buyer_search_page.dart';
-import 'package:brawigo/features/chat/presentation/pages/chat_list_page.dart';
-import 'order_page.dart';
-import 'package:brawigo/features/profile/presentation/pages/profile_page.dart';
+
+
+
+
 
 class MarketplaceBuyerPage extends StatefulWidget {
   final bool hideBottomNav;
@@ -69,34 +69,40 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
               products = state.products;
             }
 
-            return SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(context),
-                  _buildSearchBar(),
-                  _buildCarousel(),
-                  _buildSectionTitle('Produk Terbaru'),
-                  state is MarketplaceLoading
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: CircularProgressIndicator(),
-                          ),
-                        )
-                      : _buildHorizontalProductList(products),
-                  _buildSectionTitle('Produk Populer'),
-                  state is MarketplaceLoading
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: CircularProgressIndicator(),
-                          ),
-                        )
-                      : _buildHorizontalProductList(products),
-                  const SizedBox(height: 30),
-                ],
+            return RefreshIndicator(
+              onRefresh: () async {
+                _loadUserProfile();
+                context.read<MarketplaceBloc>().add(LoadProducts());
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(context),
+                    _buildSearchBar(),
+                    _buildCarousel(),
+                    _buildSectionTitle('Produk Terbaru'),
+                    state is MarketplaceLoading
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : _buildHorizontalProductList(products),
+                    _buildSectionTitle('Produk Populer'),
+                    state is MarketplaceLoading
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : _buildHorizontalProductList(products),
+                    const SizedBox(height: 30),
+                  ],
+                ),
               ),
             );
           },

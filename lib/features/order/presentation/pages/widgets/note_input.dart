@@ -5,7 +5,7 @@ class NoteInput extends StatelessWidget {
   const NoteInput({super.key});
   @override
   Widget build(BuildContext context) {
-    final _locationController = TextEditingController();
+    final noteController = TextEditingController();
 
     return GestureDetector(
       child: Container(
@@ -32,7 +32,7 @@ class NoteInput extends StatelessWidget {
             ),
             SizedBox(height: 16),
             TextFormField(
-              controller: _locationController,
+              controller: noteController,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,

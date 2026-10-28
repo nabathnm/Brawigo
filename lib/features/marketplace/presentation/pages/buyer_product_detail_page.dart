@@ -1,3 +1,5 @@
+﻿import 'seller_profile_page.dart';
+import '../../../../core/widgets/brawigo_toast.dart';
 import 'dart:convert';
 import 'package:brawigo/features/chat/presentation/pages/chat_room_page.dart';
 import 'package:flutter/material.dart';
@@ -21,12 +23,127 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
   bool _isDescriptionExpanded = false;
   List<String> _images = [];
   bool _isLoadingImages = true;
+  late Map<String, dynamic> _productData;
+
+  // Wishlist state
+  bool _isWishlisted = false;
+  String? _wishlistId;
+  bool _isTogglingWishlist = false;
 
   @override
   void initState() {
     super.initState();
+    _productData = Map<String, dynamic>.from(widget.product);
     _fetchImages();
+    _refreshProductData();
     _saveToRecentlyViewed();
+    _checkWishlistStatus();
+  }
+
+  Future<void> _checkWishlistStatus() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    final productId = widget.product['id']?.toString();
+    if (user == null || productId == null) return;
+    try {
+      final res = await Supabase.instance.client
+          .from('wishlists')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('product_id', productId)
+          .maybeSingle();
+      if (mounted) {
+        setState(() {
+          _isWishlisted = res != null;
+          _wishlistId = res?['id']?.toString();
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleWishlist() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    final productId = widget.product['id']?.toString();
+    if (user == null) {
+      BrawigoToast.showWarning(
+        context,
+        title: 'Perhatian',
+        message: 'Silakan login terlebih dahulu untuk menambah wishlist.',
+        bottomMargin: 90,
+      );
+      return;
+    }
+    if (productId == null || _isTogglingWishlist) return;
+    final sellerId = widget.product['seller_id']?.toString() ?? '';
+    if (user.id == sellerId) {
+      BrawigoToast.showWarning(
+        context,
+        title: 'Perhatian',
+        message: 'Anda tidak dapat menambahkan produk sendiri ke wishlist.',
+        bottomMargin: 90,
+      );
+      return;
+    }
+
+    setState(() => _isTogglingWishlist = true);
+    try {
+      if (_isWishlisted && _wishlistId != null) {
+        await Supabase.instance.client.from('wishlists').delete().eq('id', _wishlistId!);
+        if (mounted) setState(() { _isWishlisted = false; _wishlistId = null; });
+        if (mounted) {
+          BrawigoToast.showInfo(
+            context,
+            title: 'Dihapus',
+            message: 'Barang berhasil dihapus dari wishlist.',
+            bottomMargin: 90,
+          );
+        }
+      } else {
+        final res = await Supabase.instance.client
+            .from('wishlists')
+            .insert({'user_id': user.id, 'product_id': productId})
+            .select('id')
+            .single();
+        if (mounted) setState(() { _isWishlisted = true; _wishlistId = res['id']?.toString(); });
+        if (mounted) {
+          BrawigoToast.showSuccess(
+            context,
+            title: 'Berhasil!',
+            message: 'Barang berhasil ditambahkan ke wishlist.',
+            bottomMargin: 90,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        BrawigoToast.showError(
+          context,
+          title: 'Gagal',
+          message: 'Gagal memperbarui wishlist.',
+          bottomMargin: 90,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isTogglingWishlist = false);
+    }
+  }
+
+  Future<void> _refreshProductData() async {
+    final productId = widget.product['id']?.toString();
+    if (productId != null && productId.isNotEmpty) {
+      try {
+        final res = await Supabase.instance.client
+            .from('products')
+            .select()
+            .eq('id', productId)
+            .maybeSingle();
+        if (res != null && mounted) {
+          setState(() {
+            _productData = Map<String, dynamic>.from(res);
+          });
+        }
+      } catch (_) {}
+      await _fetchImages();
+    }
   }
 
   Future<void> _saveToRecentlyViewed() async {
@@ -53,31 +170,33 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
 
   Future<void> _openChat() async {
     final currentUser = Supabase.instance.client.auth.currentUser;
-    final product = widget.product;
+    final product = _productData;
     final sellerId = product['seller_id'] ?? '';
     final productId = product['id'] ?? '';
 
     if (currentUser == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan login terlebih dahulu untuk memulai chat.'),
-        ),
+      BrawigoToast.showWarning(
+        context,
+        message: 'Silakan login terlebih dahulu untuk memulai chat.',
+        title: 'Perhatian',
       );
       return;
     }
 
     if (sellerId.isEmpty || productId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Informasi produk/penjual tidak lengkap.'),
-        ),
+      BrawigoToast.showError(
+        context,
+        message: 'Informasi produk/penjual tidak lengkap.',
+        title: 'Gagal',
       );
       return;
     }
 
     if (currentUser.id == sellerId) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ini adalah produk Anda sendiri.')),
+      BrawigoToast.showWarning(
+        context,
+        message: 'Ini adalah produk Anda sendiri.',
+        title: 'Perhatian',
       );
       return;
     }
@@ -196,8 +315,10 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal membuka chat: ${e.toString()}')),
+        BrawigoToast.showError(
+          context,
+          message: 'Gagal membuka chat: ${e.toString()}',
+          title: 'Gagal',
         );
       }
     }
@@ -291,8 +412,11 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
     final bool isOwnProduct = currentUserId != null && currentUserId == sellerId;
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: _refreshProductData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             NotificationListener<ScrollNotification>(
@@ -408,6 +532,30 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                         ),
                       ),
                     ),
+                  // Wishlist Heart Button
+                  if (!isOwnProduct)
+                    Positioned(
+                      top: MediaQuery.of(context).padding.top + 64,
+                      right: 16,
+                      child: GestureDetector(
+                        onTap: _isTogglingWishlist ? null : _toggleWishlist,
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: _isTogglingWishlist
+                              ? const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2B5F9E))))
+                              : Icon(
+                                  _isWishlisted ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                  size: 22,
+                                  color: _isWishlisted ? Colors.red : Colors.black87,
+                                ),
+                        ),
+                      ),
+                    ),
                   // Panah Kiri Navigasi Gambar
                   if (_images.length > 1 && _currentImageIndex > 0)
                     Positioned(
@@ -520,7 +668,39 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                       color: Color(0xFF15243C),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 6),
+                  Builder(
+                    builder: (context) {
+                      final stock = product['stock'];
+                      final stockInt = (stock is int) ? stock : int.tryParse(stock?.toString() ?? '') ?? 0;
+                      final stockColor = stockInt == 0
+                          ? Colors.red
+                          : stockInt <= 3
+                              ? const Color(0xFFD97706)
+                              : const Color(0xFF22C55E);
+                      return Row(
+                        children: [
+                          Icon(
+                            stockInt == 0 ? Icons.remove_shopping_cart_outlined : Icons.inventory_2_outlined,
+                            size: 14,
+                            color: stockColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            stockInt == 0
+                                ? 'Stok Habis'
+                                : 'Sisa stok: $stockInt item',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: stockColor,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
 
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -650,28 +830,49 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                                 },
                               ),
                             ),
-                            ElevatedButton(
-                              onPressed: () {},
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF4A7EBB),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                minimumSize: const Size(0, 36),
-                              ),
-                              child: const Text(
-                                "Kunjungi Toko",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
+                            Builder(
+                              builder: (context) {
+                                final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+                                final sId = _productData['seller_id']?.toString() ?? '';
+                                final isOwnProduct = currentUserId != null && sId.isNotEmpty && currentUserId == sId;
+
+                                return ElevatedButton(
+                                  onPressed: isOwnProduct
+                                      ? null
+                                      : () {
+                                          if (sId.isNotEmpty) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => SellerProfilePage(sellerId: sId),
+                                              ),
+                                            );
+                                          }
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF4A7EBB),
+                                    disabledBackgroundColor: const Color(0xFFE2E8F0),
+                                    disabledForegroundColor: const Color(0xFF94A3B8),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                    minimumSize: const Size(0, 36),
+                                  ),
+                                  child: Text(
+                                    isOwnProduct ? "Toko Anda" : "Kunjungi Toko",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: isOwnProduct ? const Color(0xFF94A3B8) : Colors.white,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -809,6 +1010,7 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
           ],
         ),
       ),
+      ),
 
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -845,12 +1047,10 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                     ),
                     onPressed: isOwnProduct
                         ? () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Ini adalah produk Anda sendiri, tidak dapat mengirim pesan.',
-                                ),
-                              ),
+                            BrawigoToast.showWarning(
+                              context,
+                              message: 'Ini adalah produk Anda sendiri, tidak dapat mengirim pesan.',
+                              title: 'Perhatian',
                             );
                           }
                         : _openChat,
@@ -861,15 +1061,25 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                   child: ElevatedButton(
                     onPressed: isOwnProduct
                         ? () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Ini adalah produk Anda sendiri, tidak dapat melakukan checkout.',
-                                ),
-                              ),
+                            BrawigoToast.showWarning(
+                              context,
+                              message: 'Ini adalah produk Anda sendiri, tidak dapat melakukan checkout.',
+                              title: 'Perhatian',
                             );
                           }
                         : () {
+                            final stockVal = product['stock'];
+                            final int stockInt = (stockVal is int)
+                                ? stockVal
+                                : int.tryParse(stockVal?.toString() ?? '') ?? 0;
+                            if (stockInt <= 0) {
+                              BrawigoToast.showError(
+                                context,
+                                message: 'Maaf, stok barang ini sudah habis.',
+                                title: 'Stok Habis',
+                              );
+                              return;
+                            }
                             final productId = product['id']?.toString() ?? '';
                             if (productId.isNotEmpty) {
                               context.push('/checkout/$productId', extra: product);

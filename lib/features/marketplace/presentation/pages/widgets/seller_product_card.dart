@@ -60,13 +60,13 @@ class SellerProductCard extends StatelessWidget {
     }
 
     return Container(
-      height: 148,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFDADADA), width: 1),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Bagian Atas: Gambar + Detail Produk
@@ -91,64 +91,74 @@ class SellerProductCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: badgeBg,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        badgeText,
-                        style: TextStyle(color: badgeColor, fontSize: 12),
-                      ),
-                    ),
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1D4A79),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      categoryName,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6A7A8A),
-                        fontWeight: FontWeight.w400,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Rp $formattedPrice",
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1D4A79),
-                          ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 2,
                         ),
-                        Text(
-                          "Stok: $stock",
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF556575),
-                          ),
+                        decoration: BoxDecoration(
+                          color: badgeBg,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
-                    ),
-                  ],
+                        child: Text(
+                          badgeText,
+                          style: TextStyle(color: badgeColor, fontSize: 12),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1D4A79),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        categoryName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6A7A8A),
+                          fontWeight: FontWeight.w400,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              "Rp $formattedPrice",
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1D4A79),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Stok: $stock",
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF556575),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -163,7 +173,7 @@ class SellerProductCard extends StatelessWidget {
                 Expanded(
                   child: InkWell(
                     borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(20),
+                      bottomLeft: Radius.circular(12),
                     ),
                     onTap: () async {
                       if (onBeforeAction != null && !onBeforeAction!()) return;
@@ -246,7 +256,7 @@ class SellerProductCard extends StatelessWidget {
                 Expanded(
                   child: InkWell(
                     borderRadius: const BorderRadius.only(
-                      bottomRight: Radius.circular(20),
+                      bottomRight: Radius.circular(12),
                     ),
                     onTap: () {
                       if (onBeforeAction != null && !onBeforeAction!()) return;

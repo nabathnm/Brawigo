@@ -47,11 +47,16 @@ class LoadSellerOrders extends OrderEvent {}
 class UpdateOrderStatus extends OrderEvent {
   final String orderId;
   final String status;
+  final Map<String, dynamic>? extraData;
 
-  const UpdateOrderStatus({required this.orderId, required this.status});
+  const UpdateOrderStatus({
+    required this.orderId,
+    required this.status,
+    this.extraData,
+  });
 
   @override
-  List<Object?> get props => [orderId, status];
+  List<Object?> get props => [orderId, status, extraData];
 }
 
 class ConfirmPayment extends OrderEvent {

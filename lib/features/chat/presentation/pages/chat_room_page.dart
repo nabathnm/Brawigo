@@ -648,6 +648,7 @@ class _MessageBubble extends StatelessWidget {
   });
 
   bool get _isImage => message.trim().startsWith('[IMAGE]:');
+  bool get _isReport => message.contains('[LAPORAN]');
 
   String get _imageUrl {
     if (!_isImage) return '';
@@ -697,7 +698,10 @@ class _MessageBubble extends StatelessWidget {
                   ? const EdgeInsets.all(4)
                   : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: isMe ? const Color(0xFF2B5F9E) : Colors.white,
+                color: _isReport
+                    ? const Color(0xFFFEF2F2)
+                    : (isMe ? const Color(0xFF2B5F9E) : Colors.white),
+                border: _isReport ? Border.all(color: const Color(0xFFFCA5A5), width: 1.5) : null,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -712,7 +716,37 @@ class _MessageBubble extends StatelessWidget {
                   ),
                 ],
               ),
-              child: _isImage
+              child: _isReport
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.report_problem_rounded, color: Color(0xFFDC2626), size: 16),
+                            SizedBox(width: 6),
+                            Text(
+                              'LAPORAN PELANGGARAN',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFDC2626),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          message.replaceAll('[LAPORAN]:', '').trim(),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF991B1B),
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    )
+                  : _isImage
                   ? GestureDetector(
                       onTap: () => _showFullScreenImage(context, _imageUrl),
                       child: ClipRRect(

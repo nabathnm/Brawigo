@@ -3,8 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import '../../../../core/routes/router.dart';
-import './features/auth/presentation/blocs/auth_bloc.dart';
+import 'package:brawigo/core/routes/router.dart';
+import 'package:brawigo/features/auth/presentation/blocs/auth_bloc.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -38,14 +38,43 @@ class MyApp extends StatelessWidget {
         title: 'Brawigo',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          primaryColor: BrawigoColors.blue400,
+          useMaterial3: true,
+          primaryColor: BrawigoColors.blue600,
           scaffoldBackgroundColor: BrawigoColors.blue50,
           textTheme: GoogleFonts.plusJakartaSansTextTheme(
             Theme.of(context).textTheme,
           ),
           canvasColor: Colors.white,
-          colorScheme: const ColorScheme.light(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: BrawigoColors.blue600,
+            primary: BrawigoColors.blue600,
+            secondary: BrawigoColors.blue400,
             surface: Colors.white,
+          ),
+          progressIndicatorTheme: const ProgressIndicatorThemeData(
+            color: BrawigoColors.blue600,
+          ),
+          radioTheme: RadioThemeData(
+            fillColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return BrawigoColors.blue600;
+              }
+              return const Color(0xFF64748B);
+            }),
+          ),
+          checkboxTheme: CheckboxThemeData(
+            fillColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return BrawigoColors.blue600;
+              }
+              return Colors.transparent;
+            }),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: BrawigoColors.blue600,
+              foregroundColor: Colors.white,
+            ),
           ),
         ),
         routerConfig: appRouter,

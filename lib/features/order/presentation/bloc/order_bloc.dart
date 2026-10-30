@@ -34,12 +34,16 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         return;
       }
       
-      if ((product['stock'] as num) < event.quantity) {
+      final int currentStock = (product['stock'] as num?)?.toInt() ?? 0;
+      if (currentStock < event.quantity) {
         emit(const OrderError('Stok tidak mencukupi.'));
         return;
       }
 
-      final double unitPrice = (product['price'] as num).toDouble();
+      final dynamic rawPrice = product['price'];
+      final double unitPrice = (rawPrice is num)
+          ? rawPrice.toDouble()
+          : (double.tryParse(rawPrice?.toString().replaceAll(RegExp(r'[^0-9.]'), '') ?? '0') ?? 0.0);
       final double totalAmount = unitPrice * event.quantity;
 
       await _supabase.from('orders').insert({
@@ -58,6 +62,12 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         'meetup_time': event.meetupTime,
         'created_at': DateTime.now().toIso8601String(),
       });
+
+      // Kurangi stok barang
+      try {
+        final newStock = (currentStock - event.quantity).clamp(0, 999999);
+        await _supabase.from('products').update({'stock': newStock}).eq('id', event.productId);
+      } catch (_) {}
 
       emit(const OrderSuccess(message: 'Pesanan berhasil dibuat!'));
     } catch (e) {
@@ -128,10 +138,30 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         return;
       }
 
+      final updateData = <String, dynamic>{
+        'order_status': event.status,
+        ...?event.extraData,
+      };
+
       await _supabase
           .from('orders')
-          .update({'order_status': event.status})
+          .update(updateData)
           .eq('id', event.orderId);
+
+      // Jika pesanan dibatalkan, kembalikan stok barang
+      if (event.status == 'cancelled') {
+        final pId = orderRes['product_id']?.toString();
+        final qty = (orderRes['quantity'] as num?)?.toInt() ?? 1;
+        if (pId != null && pId.isNotEmpty) {
+          try {
+            final pRes = await _supabase.from('products').select('stock').eq('id', pId).maybeSingle();
+            if (pRes != null && pRes['stock'] != null) {
+              final curStock = (pRes['stock'] as num).toInt();
+              await _supabase.from('products').update({'stock': curStock + qty}).eq('id', pId);
+            }
+          } catch (_) {}
+        }
+      }
 
       emit(const OrderSuccess(message: 'Status pesanan berhasil diperbarui.'));
     } catch (e) {

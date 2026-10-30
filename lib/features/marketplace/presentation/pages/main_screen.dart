@@ -1,58 +1,82 @@
+import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/marketplace_buyer_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/marketplace_seller_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/add_product_page.dart';
-import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
-import 'package:brawigo/features/profile/presentation/pages/profile_page.dart';
+import 'package:brawigo/features/chat/presentation/pages/chat_list_page.dart';
+import 'package:brawigo/features/profile/presentation/pages/profile_hub_page.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_bloc.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_state.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_bloc.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_event.dart';
 import 'package:brawigo/features/order/presentation/pages/order_list_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
+import 'package:brawigo/core/utils/seller_profile_checker.dart';
 import 'package:go_router/go_router.dart';
 
 class MainScreen extends StatefulWidget {
   final bool isSeller;
-  const MainScreen({super.key, this.isSeller = false});
+  final int initialIndex;
+
+  const MainScreen({super.key, this.isSeller = false, this.initialIndex = 0});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   late final List<Widget> _pages;
   late final bool _isSeller;
+
+  void _goToProfile() {
+    setState(() {
+      _currentIndex = 4;
+    });
+  }
+
+  Future<void> _checkSellerProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null || !_isSeller) return;
+
+    final status = await SellerProfileStatus.check(user.id);
+    if (!status.isComplete && mounted) {
+      SellerProfileStatus.showIncompleteDialog(
+        context,
+        onGoToProfile: _goToProfile,
+        onEscapeToBuyer: () => context.go('/buyer'),
+      );
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _isSeller = widget.isSeller;
     _pages = [
-      _isSeller ? const MarketPlaceSellerPage() : const MarketplaceBuyerPage(),
-      const Scaffold(
-        backgroundColor: Color(0xFFEAF0F6),
-        body: Center(
-          child: Text(
-            "Halaman Pesan\n(Segera Hadir)",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF6A7A8A),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
+      _isSeller
+          ? MarketPlaceSellerPage(onNavigateToProfile: _goToProfile)
+          : const MarketplaceBuyerPage(),
+      ChatListPage(isSeller: _isSeller),
       const SizedBox(), // Placeholder untuk tombol tengah (+)
       BlocProvider(
-        create: (context) => OrderBloc()..add(_isSeller ? LoadSellerOrders() : LoadBuyerOrders()),
+        create: (context) =>
+            OrderBloc()
+              ..add(_isSeller ? LoadSellerOrders() : LoadBuyerOrders()),
         child: OrderListPage(isSeller: _isSeller),
       ),
-      const ProfilePage(),
+      ProfileHubPage(isSeller: _isSeller),
     ];
+
+    if (_isSeller) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkSellerProfile();
+      });
+    }
   }
 
   @override
@@ -64,17 +88,27 @@ class _MainScreenState extends State<MainScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFEAF0F6),
-        body: _pages[_currentIndex],
+        backgroundColor: const Color(0xFFFAFAFA),
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFC8DAEF), Color(0xFFE6EDF8), Color(0xFFFAFAFA)],
+              stops: [0.0, 0.2, 1.0],
+            ),
+          ),
+          child: _pages[_currentIndex],
+        ),
         bottomNavigationBar: Container(
+          height: 106,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            color: const Color(0xFFFFFFFF),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(12),
-                blurRadius: 16,
-                offset: const Offset(0, -4),
+                color: const Color(0xFF1E2D3D).withValues(alpha: 0.07),
+                blurRadius: 24,
+                offset: const Offset(0, -6),
               ),
             ],
           ),
@@ -130,11 +164,13 @@ class _MainScreenState extends State<MainScreen> {
           _currentIndex = index;
         });
       },
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, color: color, size: 24),
             const SizedBox(height: 4),
@@ -143,7 +179,8 @@ class _MainScreenState extends State<MainScreen> {
               style: TextStyle(
                 color: color,
                 fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                letterSpacing: 0.2,
               ),
             ),
           ],
@@ -157,7 +194,21 @@ class _MainScreenState extends State<MainScreen> {
     return GestureDetector(
       onTap: () async {
         if (_isSeller) {
-          await Navigator.push(
+          final user = Supabase.instance.client.auth.currentUser;
+          if (user != null) {
+            final status = await SellerProfileStatus.check(user.id);
+            if (!status.isComplete && context.mounted) {
+              SellerProfileStatus.showIncompleteDialog(
+                context,
+                onGoToProfile: _goToProfile,
+                onEscapeToBuyer: () => context.go('/buyer'),
+              );
+              return;
+            }
+          }
+
+          if (!context.mounted) return;
+          final result = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
               builder: (context) => BlocProvider.value(
@@ -166,7 +217,7 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ),
           );
-          if (context.mounted) {
+          if (result == true && context.mounted) {
             marketplaceBloc.add(LoadSellerProducts());
           }
         } else {
@@ -178,10 +229,10 @@ class _MainScreenState extends State<MainScreen> {
         }
       },
       child: Container(
-        width: 54,
-        height: 54,
+        width: 52,
+        height: 52,
         decoration: BoxDecoration(
-          color: const Color(0xFF2E6399),
+          color: BrawigoColors.blue500,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(

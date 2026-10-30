@@ -1,16 +1,22 @@
 import 'dart:async';
-import 'dart:ui'; 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../bloc/marketplace_bloc.dart';
 import '../bloc/marketplace_state.dart';
+import '../bloc/marketplace_event.dart';
 import 'buyer_product_detail_page.dart';
-import 'buyer_search_page.dart';
+
+
+
+
 
 class MarketplaceBuyerPage extends StatefulWidget {
-  const MarketplaceBuyerPage({super.key});
+  final bool hideBottomNav;
+  const MarketplaceBuyerPage({super.key, this.hideBottomNav = false});
 
   @override
   State<MarketplaceBuyerPage> createState() => _MarketplaceBuyerPageState();
@@ -20,10 +26,13 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
   final PageController _pageController = PageController();
   int _currentCarouselIndex = 0;
   Timer? _carouselTimer;
+  String _displayName = 'Pengguna';
+  String? _photoUrl;
 
   @override
   void initState() {
     super.initState();
+    _loadUserProfile();
 
     _carouselTimer = Timer.periodic(const Duration(seconds: 7), (Timer timer) {
       if (_currentCarouselIndex < 2) {
@@ -51,7 +60,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BrawigoColors.blue100, 
+      backgroundColor: BrawigoColors.blue100,
       body: SafeArea(
         child: BlocBuilder<MarketplaceBloc, MarketplaceState>(
           builder: (context, state) {
@@ -60,30 +69,75 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
               products = state.products;
             }
 
-            return SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(context),
-                  _buildSearchBar(),
-                  _buildCarousel(),
-                  _buildSectionTitle('Produk Terbaru'),
-                  state is MarketplaceLoading
-                      ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
-                      : _buildHorizontalProductList(products),
-                  _buildSectionTitle('Produk Populer'),
-                  state is MarketplaceLoading
-                      ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
-                      : _buildHorizontalProductList(products),
-                  const SizedBox(height: 30),
-                ],
+            return RefreshIndicator(
+              onRefresh: () async {
+                _loadUserProfile();
+                context.read<MarketplaceBloc>().add(LoadProducts());
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(context),
+                    _buildSearchBar(),
+                    _buildCarousel(),
+                    _buildSectionTitle('Produk Terbaru'),
+                    state is MarketplaceLoading
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : _buildHorizontalProductList(products),
+                    _buildSectionTitle('Produk Populer'),
+                    state is MarketplaceLoading
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        : _buildHorizontalProductList(products),
+                    const SizedBox(height: 30),
+                  ],
+                ),
               ),
             );
           },
         ),
       ),
     );
+  }
+
+  Future<void> _loadUserProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    try {
+      final res = await Supabase.instance.client
+          .from('profiles')
+          .select('full_name, username, profile_photo_url')
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (res != null && mounted) {
+        final username = res['username']?.toString().trim();
+        final fullName = res['full_name']?.toString().trim();
+        final photo = res['profile_photo_url']?.toString().trim();
+
+        setState(() {
+          if (username != null && username.isNotEmpty && username != '-') {
+            _displayName = username;
+          } else if (fullName != null && fullName.isNotEmpty) {
+            _displayName = fullName;
+          } else {
+            _displayName = user.email?.split('@').first ?? 'Pengguna';
+          }
+          _photoUrl = photo;
+        });
+      }
+    } catch (_) {}
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -94,25 +148,42 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
         children: [
           Row(
             children: [
-              const CircleAvatar(
-                radius: 22,
-                backgroundColor: BrawigoColors.blueNormalActive,
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: const Color(0xFF4A7EBB),
+                backgroundImage: (_photoUrl != null && _photoUrl!.isNotEmpty)
+                    ? NetworkImage(_photoUrl!)
+                    : null,
+                child: (_photoUrl == null || _photoUrl!.isEmpty)
+                    ? Text(
+                        _displayName.isNotEmpty
+                            ? _displayName[0].toUpperCase()
+                            : 'U',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      )
+                    : null,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
+                children: [
+                  const Text(
                     "Selamat Datang,",
                     style: TextStyle(fontSize: 12, color: Color(0xFF4A5568)),
                   ),
                   Text(
-                    "Hassan Nashrallah",
-                    style: TextStyle(
+                    _displayName,
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: BrawigoColors.blue950, 
+                      color: BrawigoColors.blue950,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -145,8 +216,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color:
-                            BrawigoColors.blue950, 
+                        color: BrawigoColors.blue950,
                       ),
                     ),
                     SizedBox(width: 4),
@@ -154,7 +224,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                       Icons.keyboard_arrow_down_rounded,
                       size: 18,
                       color: BrawigoColors.blue950,
-                    ), 
+                    ),
                   ],
                 ),
               ),
@@ -174,7 +244,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
     );
   }
 
- Widget _buildSearchBar() {
+  Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Container(
@@ -185,12 +255,9 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
           border: Border.all(color: Colors.grey.shade200, width: 1),
         ),
         child: TextField(
-          readOnly: true, 
+          readOnly: true,
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const BuyerSearchPage()),
-            );
+            context.push('/buyer-search');
           },
           decoration: const InputDecoration(
             hintText: 'Cari produk',
@@ -218,7 +285,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
             behavior: ScrollConfiguration.of(context).copyWith(
               dragDevices: {
                 PointerDeviceKind.touch,
-                PointerDeviceKind.mouse, 
+                PointerDeviceKind.mouse,
                 PointerDeviceKind.trackpad,
               },
             ),
@@ -234,10 +301,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                 return Container(
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [
-                        BrawigoColors.blue100,
-                        BrawigoColors.blue200,
-                      ],
+                      colors: [BrawigoColors.blue100, BrawigoColors.blue200],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -257,10 +321,10 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                             Container(
                               width: 70,
                               height: 70,
-                            
-                              child:  Image.asset(
-                                'assets/images/logo_brawigo.png', 
-                                width:48, 
+
+                              child: Image.asset(
+                                'assets/images/logo_brawigo.png',
+                                width: 48,
                                 height: 48,
                                 fit: BoxFit.contain,
                               ),
@@ -271,8 +335,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
-                                color: BrawigoColors
-                                    .blue950, 
+                                color: BrawigoColors.blue950,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -281,8 +344,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
-                                color: BrawigoColors
-                                    .blue800, 
+                                color: BrawigoColors.blue800,
                               ),
                             ),
                           ],
@@ -295,7 +357,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                           Icons.chevron_right_rounded,
                           color: BrawigoColors.blue950,
                           size: 24,
-                        ), 
+                        ),
                       ),
                     ],
                   ),
@@ -314,9 +376,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
               height: 6,
               width: isActive ? 20 : 6,
               decoration: BoxDecoration(
-                color: isActive
-                    ? BrawigoColors.blue900
-                    : BrawigoColors.blue300,
+                color: isActive ? BrawigoColors.blue900 : BrawigoColors.blue300,
                 borderRadius: BorderRadius.circular(10),
               ),
             );
@@ -344,10 +404,25 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
             Icons.chevron_right_rounded,
             color: BrawigoColors.blue950,
             size: 22,
-          ), 
+          ),
         ],
       ),
     );
+  }
+
+  String _formatCurrency(dynamic amount) {
+    final int value = (amount as num?)?.toInt() ?? 0;
+    String valStr = value.toString();
+    String result = '';
+    int count = 0;
+    for (int i = valStr.length - 1; i >= 0; i--) {
+      if (count != 0 && count % 3 == 0) {
+        result = '.$result';
+      }
+      result = valStr[i] + result;
+      count++;
+    }
+    return result;
   }
 
   Widget _buildHorizontalProductList(List<Map<String, dynamic>> products) {
@@ -370,16 +445,19 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
           itemBuilder: (context, index) {
             final product = products[index];
             final String? imageUrl = product['thumbnail_url'] as String?;
-            final String name = product['product_name'] as String? ?? 'Tanpa Nama';
-            final String price = (product['price'] as num?)?.toString() ?? '0';
-            final String category = product['category_name'] as String? ?? 'Alat';
+            final String name =
+                product['product_name'] as String? ?? 'Tanpa Nama';
+            final String formattedPrice = _formatCurrency(product['price']);
+            final String category =
+                product['category_name'] as String? ?? 'Alat';
 
             return GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => BuyerProductDetailPage(product: product),
+                    builder: (context) =>
+                        BuyerProductDetailPage(product: product),
                   ),
                 );
               },
@@ -408,7 +486,10 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                               height: 145,
                               width: double.infinity,
                               color: Colors.grey.shade200,
-                              child: const Icon(Icons.image_outlined, color: Colors.grey),
+                              child: const Icon(
+                                Icons.image_outlined,
+                                color: Colors.grey,
+                              ),
                             ),
                     ),
                     Expanded(
@@ -438,7 +519,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                             ),
                             const Spacer(),
                             Text(
-                              "Rp $price",
+                              "Rp $formattedPrice",
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
@@ -458,6 +539,4 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
       ),
     );
   }
-
-
 }

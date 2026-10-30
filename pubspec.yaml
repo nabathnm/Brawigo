@@ -23,6 +23,8 @@ dependencies:
   go_router: ^17.3.0
   google_fonts: ^8.2.0
   dotted_border: ^3.1.0
+  intl: ^0.20.2
+  shared_preferences: ^2.5.4
 
 dev_dependencies:
   flutter_test:
@@ -30,7 +32,6 @@ dev_dependencies:
   icons_launcher: ^3.0.0
   flutter_lints: ^6.0.0
   mockito: ^5.7.0
-
 
 flutter:
   uses-material-design: true
@@ -40,6 +41,8 @@ flutter:
     - assets/images/
     - assets/images/navbar/
     - assets/icons/
+    - assets/icons/common/
+    - assets/icons/marketplace/
 
 icons_launcher:
   image_path: "assets/icons/icon_launcher.png"
@@ -57,3 +60,4 @@ flutter_native_splash:
   android_12:
     image: "assets/images/logo_brawigo_text_native.png"
     icon_background_color: "#FFFFFF"
+

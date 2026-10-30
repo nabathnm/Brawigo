@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -29,6 +30,8 @@ class _AddProductPageState extends State<AddProductPage> {
   String? _selectedCategory;
   List<Map<String, dynamic>> _categories = [];
   bool _isLoadingCategories = true;
+  bool _isSubmitting = false;
+  bool _hasPopped = false;
 
   @override
   void initState() {
@@ -85,7 +88,14 @@ class _AddProductPageState extends State<AddProductPage> {
     }
   }
 
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+  }
+
   void _submitForm() {
+    if (_isSubmitting || _hasPopped) return;
     if (_formKey.currentState!.validate()) {
       if (_selectedImages.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -110,6 +120,11 @@ class _AddProductPageState extends State<AddProductPage> {
       final desc = _descController.text.trim();
       final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
       final stock = int.tryParse(_stockController.text.trim()) ?? 1;
+
+      setState(() {
+        _isSubmitting = true;
+      });
+
       // Memicu event AddProduct ke MarketplaceBloc
       context.read<MarketplaceBloc>().add(
         AddProduct(
@@ -198,17 +213,32 @@ class _AddProductPageState extends State<AddProductPage> {
     return BlocListener<MarketplaceBloc, MarketplaceState>(
       listener: (context, state) {
         if (state is MarketplaceError) {
+          if (_isSubmitting && mounted) {
+            setState(() {
+              _isSubmitting = false;
+            });
+          }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         } else if (state is MarketplaceLoaded) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Produk berhasil ditambahkan!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          Navigator.pop(context);
+          if (_isSubmitting && !_hasPopped) {
+            _hasPopped = true;
+            if (mounted) {
+              setState(() {
+                _isSubmitting = false;
+              });
+            }
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Produk berhasil ditambahkan!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context, true);
+            }
+          }
         }
       },
       child: Scaffold(
@@ -219,7 +249,11 @@ class _AddProductPageState extends State<AddProductPage> {
           leading: Padding(
             padding: const EdgeInsets.only(left: 16.0, top: 8, bottom: 8),
             child: InkWell(
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                if (_hasPopped || _isSubmitting) return;
+                _hasPopped = true;
+                Navigator.pop(context, false);
+              },
               borderRadius: BorderRadius.circular(30),
               child: Container(
                 decoration: BoxDecoration(
@@ -263,22 +297,14 @@ class _AddProductPageState extends State<AddProductPage> {
         ),
         body: BlocBuilder<MarketplaceBloc, MarketplaceState>(
           builder: (context, state) {
-            if (state is MarketplaceLoading) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: Color(0xFF1E3A8A)),
-                    SizedBox(height: 16),
-                    Text('Menyimpan produk dan mengunggah gambar...'),
-                  ],
-                ),
-              );
-            }
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Form(
+            final isLoading = (state is MarketplaceLoading) || _isSubmitting;
+            return Stack(
+              children: [
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(20.0),
+                  child: AbsorbPointer(
+                    absorbing: isLoading,
+                    child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -453,13 +479,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                                 top: 4,
                                                 right: 12,
                                                 child: GestureDetector(
-                                                  onTap: () {
-                                                    setState(() {
-                                                      _selectedImages.removeAt(
-                                                        index,
-                                                      );
-                                                    });
-                                                  },
+                                                  onTap: () => _removeImage(index),
                                                   child: Container(
                                                     padding:
                                                         const EdgeInsets.all(2),
@@ -615,7 +635,7 @@ class _AddProductPageState extends State<AddProductPage> {
                           shadowColor:
                               Colors.transparent, // Disable default shadow
                         ),
-                        onPressed: _submitForm,
+                        onPressed: _isSubmitting ? null : _submitForm,
                         child: Ink(
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
@@ -647,10 +667,34 @@ class _AddProductPageState extends State<AddProductPage> {
                   ],
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          ),
+          if (isLoading)
+            Container(
+              color: Colors.white.withValues(alpha: 0.7),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(color: Color(0xFF1E3A8A)),
+                    SizedBox(height: 16),
+                    Text(
+                      'Menyimpan produk dan mengunggah gambar...',
+                      style: TextStyle(
+                        color: Color(0xFF1E3A8A),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      );
+    },
+  ),
       ),
     );
   }
 }
+

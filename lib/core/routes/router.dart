@@ -1,6 +1,8 @@
+import 'package:brawigo/features/marketplace/presentation/pages/manage_products_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/seller_earnings_page.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_bloc.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_event.dart';
-import 'package:brawigo/features/order/presentation/pages/checkout_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/checkout_page.dart' as marketplace_checkout;
 import 'package:brawigo/features/order/presentation/pages/order_list_page.dart';
 import 'package:brawigo/features/order/presentation/pages/order_detail_page.dart';
 import 'package:go_router/go_router.dart';
@@ -12,9 +14,13 @@ import '../../features/auth/presentation/pages/complete_profile_page.dart';
 import '../../features/marketplace/presentation/pages/main_screen.dart';
 import '../../features/auth/presentation/pages/set_photo_page.dart';
 import '../../features/auth/presentation/pages/onboarding_success_page.dart';
+import '../../features/auth/presentation/pages/forgot_password_page.dart';
+import '../../features/auth/presentation/pages/reset_password_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/buyer_product_detail_page.dart';
+import 'package:brawigo/features/marketplace/presentation/pages/buyer_search_page.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation : '/splash',
@@ -39,18 +45,46 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const OnboardingSuccessPage(),
     ),
     GoRoute(
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordPage(),
+    ),
+    GoRoute(
+      path: '/reset-password',
+      builder: (context, state) {
+        final email = (state.extra as String?) ?? '';
+        return ResetPasswordPage(email: email);
+      },
+    ),
+    GoRoute(
       path: '/home',
-      builder: (context, state) => BlocProvider(
-        create: (context) => MarketplaceBloc()..add(LoadProducts()),
-        child: const MainScreen(isSeller: false),
-      ),
+      builder: (context, state) {
+        final initialIndex = (state.extra is int) ? state.extra as int : 0;
+        return BlocProvider(
+          create: (context) => MarketplaceBloc()..add(LoadProducts()),
+          child: MainScreen(isSeller: false, initialIndex: initialIndex),
+        );
+      },
     ),
     GoRoute(
       path: '/buyer',
-      builder: (context, state) => BlocProvider(
-        create: (context) => MarketplaceBloc()..add(LoadProducts()),
-        child: const MainScreen(isSeller: false),
-      ),
+      builder: (context, state) {
+        final initialIndex = (state.extra is int) ? state.extra as int : 0;
+        return BlocProvider(
+          create: (context) => MarketplaceBloc()..add(LoadProducts()),
+          child: MainScreen(isSeller: false, initialIndex: initialIndex),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/buyer-search',
+      builder: (context, state) => const BuyerSearchPage(),
+    ),
+    GoRoute(
+      path: '/buyer-product-detail',
+      builder: (context, state) {
+        final product = (state.extra as Map<String, dynamic>?) ?? {};
+        return BuyerProductDetailPage(product: product);
+      },
     ),
     GoRoute(
       path: '/seller',
@@ -64,12 +98,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/checkout/:productId',
       builder: (context, state) {
-        final productId = state.pathParameters['productId']!;
-        final product = state.extra as Map<String, dynamic>;
-        return BlocProvider(
-          create: (context) => OrderBloc(),
-          child: CheckoutPage(productId: productId, product: product),
-        );
+        final product = (state.extra as Map<String, dynamic>?) ?? {};
+        return marketplace_checkout.CheckoutPage(product: product);
       },
     ),
     GoRoute(
@@ -106,6 +136,16 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-  ]
-  
+    GoRoute(
+      path: '/seller/earnings',
+      builder: (context, state) => const SellerEarningsPage(),
+    ),
+    GoRoute(
+      path: '/seller/manage-products',
+      builder: (context, state) => BlocProvider(
+        create: (context) => MarketplaceBloc()..add(LoadSellerProducts()),
+        child: const ManageProductsPage(),
+      ),
+    ),
+  ],
 );

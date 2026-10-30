@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthState;
 import 'auth_event.dart';
@@ -72,7 +71,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     // ini buat complete_profile_page
     on<ProfileCompletionRequested>(_onProfileCompletionRequested);
-    // INI BUAT SET FOTO PROFIL AWAL 
+    // INI BUAT SET FOTO PROFIL AWAL
     on<ProfilePhotoUploadRequested>(_onProfilePhotoUploadRequested);
   }
 
@@ -109,8 +108,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  // logic untuk upload foto profil 
-Future<void> _onProfilePhotoUploadRequested(
+  // logic untuk upload foto profil
+  Future<void> _onProfilePhotoUploadRequested(
     ProfilePhotoUploadRequested event,
     Emitter<AuthState> emit,
   ) async {
@@ -162,5 +161,3 @@ Future<void> _onProfilePhotoUploadRequested(
     }
   }
 }
-
-

@@ -138,7 +138,10 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
             .maybeSingle();
         if (res != null && mounted) {
           setState(() {
-            _productData = Map<String, dynamic>.from(res);
+            _productData = {
+              ...widget.product,
+              ...Map<String, dynamic>.from(res),
+            };
           });
         }
       } catch (_) {}
@@ -406,7 +409,7 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final product = widget.product;
+    final product = _productData.isNotEmpty ? _productData : widget.product;
     final currentUserId = Supabase.instance.client.auth.currentUser?.id;
     final sellerId = product['seller_id']?.toString() ?? '';
     final bool isOwnProduct = currentUserId != null && currentUserId == sellerId;

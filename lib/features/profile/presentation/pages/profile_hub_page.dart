@@ -204,15 +204,8 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
         return;
       }
 
-      // 2. Eksekusi penghapusan permanen dari database (termasuk auth.users & produk)
-      try {
-        await _supabase.rpc('delete_user_account');
-      } catch (rpcErr) {
-        // Fallback jika RPC database belum dieksekusi di SQL Editor
-        await _supabase.from('products').delete().eq('seller_id', user.id);
-        await _supabase.from('wishlists').delete().eq('user_id', user.id);
-        await _supabase.from('profiles').delete().eq('id', user.id);
-      }
+      // 2. Eksekusi penghapusan permanen dari database via RPC (termasuk auth.users & seluruh relasi)
+      await _supabase.rpc('delete_user_account');
 
       // 3. Logout dan alihkan ke halaman login
       if (mounted) {
@@ -222,7 +215,7 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
           BrawigoToast.showSuccess(
             context,
             title: 'Akun Berhasil Dihapus',
-            message: 'Akun dan seluruh produk Anda telah dihapus secara permanen.',
+            message: 'Akun dan seluruh data Anda telah dihapus secara permanen.',
           );
           context.go('/login');
         }

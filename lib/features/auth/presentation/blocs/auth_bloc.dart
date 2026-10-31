@@ -18,22 +18,69 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           emit(AuthAuthenticated());
         }
       } on AuthException catch (e) {
-        emit(AuthError(message: e.message));
+        final msg = e.message.toLowerCase();
+        if (msg.contains('invalid login credentials')) {
+          emit(const AuthError(message: 'Email atau password yang Anda masukkan salah.'));
+        } else if (msg.contains('email not confirmed')) {
+          emit(const AuthError(message: 'Email belum diverifikasi. Silakan periksa inbox/spam email Anda.'));
+        } else {
+          emit(AuthError(message: e.message));
+        }
       } catch (e) {
         emit(const AuthError(message: 'Terjadi Kesalahan Tidak Terduga.'));
       }
     });
 
     on<RegisterRequested>((event, emit) async {
+      emit(AuthLoading());
+      final email = event.email.trim();
       try {
-        await supabaseClient.auth.signUp(
-          email: event.email,
+        // 1. Cek langsung via database RPC apakah email sudah terdaftar di auth.users atau profiles
+        try {
+          final isRegistered = await supabaseClient.rpc(
+            'check_email_registered',
+            params: {'p_email': email},
+          );
+          if (isRegistered == true) {
+            emit(const AuthError(
+              message: 'Akun dengan email ini sudah terdaftar. Silakan login ke akun Anda.',
+            ));
+            return;
+          }
+        } catch (_) {
+          // Lanjut ke pemeriksaan Supabase Auth jika RPC belum terpasang
+        }
+
+        // 2. Eksekusi pendaftaran ke Supabase Auth
+        final response = await supabaseClient.auth.signUp(
+          email: email,
           password: event.password,
         );
 
-        emit(AuthNeedsVerification(event.email));
+        // 3. Deteksi Supabase Prevent Email Enumeration:
+        // Jika email sudah terdaftar, response.user != null tetapi identities bernilai kosong
+        final identities = response.user?.identities;
+        if (response.user != null && (identities == null || identities.isEmpty)) {
+          emit(const AuthError(
+            message: 'Akun dengan email ini sudah terdaftar. Silakan login ke akun Anda.',
+          ));
+          return;
+        }
+
+        emit(AuthNeedsVerification(email));
       } on AuthException catch (e) {
-        emit(AuthError(message: e.message));
+        final msg = e.message.toLowerCase();
+        if (msg.contains('already registered') ||
+            msg.contains('already exists') ||
+            msg.contains('user already exists') ||
+            msg.contains('email address already') ||
+            e.statusCode == '422') {
+          emit(const AuthError(
+            message: 'Akun dengan email ini sudah terdaftar. Silakan login ke akun Anda.',
+          ));
+        } else {
+          emit(AuthError(message: e.message));
+        }
       } catch (e) {
         emit(const AuthError(message: 'Terjadi Kesalahan Tidak Terduga'));
       }

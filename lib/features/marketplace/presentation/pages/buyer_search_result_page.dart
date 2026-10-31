@@ -70,6 +70,8 @@ class _BuyerSearchResultPageState extends State<BuyerSearchResultPage> {
             'thumbnail_url': p['thumbnail_url']?.toString() ?? '',
             'description': p['description']?.toString() ?? '',
             'seller_id': p['seller_id']?.toString() ?? '',
+            'stock': p['stock']?.toString() ?? '0',
+            'status': p['status']?.toString() ?? 'active',
           };
         }).toList();
 

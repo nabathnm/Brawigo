@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
 import 'buyer_product_detail_page.dart';
+import 'buyer_search_filter_page.dart';
 
 enum SortOption { none, priceLow, priceHigh }
 
@@ -20,6 +21,7 @@ class _BuyerSearchResultPageState extends State<BuyerSearchResultPage> {
   List<Map<String, String>> _sortedResults = [];
   bool _isLoading = true;
   SortOption _currentSort = SortOption.none;
+  SearchFilterData _currentFilter = const SearchFilterData();
   final _formatCurrency = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
   @override
@@ -51,7 +53,7 @@ class _BuyerSearchResultPageState extends State<BuyerSearchResultPage> {
     try {
       final response = await Supabase.instance.client
           .from('products')
-          .select()
+          .select('*, categories(id, name)')
           .ilike('product_name', '%$query%')
           .order('created_at', ascending: false);
 
@@ -59,11 +61,15 @@ class _BuyerSearchResultPageState extends State<BuyerSearchResultPage> {
 
       if (mounted) {
         final results = products.map<Map<String, String>>((p) {
+          final catObj = p['categories'] as Map<String, dynamic>?;
+          final catName = catObj?['name']?.toString() ?? 'Lainnya';
           return {
             'id': p['id']?.toString() ?? '',
             'name': p['product_name']?.toString() ?? '',
             'product_name': p['product_name']?.toString() ?? '',
-            'category': 'Kategori',
+            'category': catName,
+            'category_name': catName,
+            'category_id': p['category_id']?.toString() ?? '',
             'price': p['price'] != null ? _formatCurrency.format(p['price']) : '',
             'raw_price': p['price']?.toString() ?? '0',
             'image_url': p['thumbnail_url']?.toString() ?? '',
@@ -75,35 +81,104 @@ class _BuyerSearchResultPageState extends State<BuyerSearchResultPage> {
           };
         }).toList();
 
-        setState(() {
-          _searchResults = results;
-          _sortedResults = List.from(results);
-          _isLoading = false;
-        });
+        _searchResults = results;
+        _applyFiltersAndSort();
+        setState(() => _isLoading = false);
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  void _applySort(SortOption option) {
+  void _applyFiltersAndSort() {
+    List<Map<String, String>> list = List.from(_searchResults);
+
+    // 1. Filter Kategori
+    if (_currentFilter.category != null && _currentFilter.category!.isNotEmpty) {
+      final selectedCat = _currentFilter.category!;
+      list = list.where((p) {
+        final cat = (p['category'] ?? '').toString();
+        return _matchesCategory(cat, selectedCat);
+      }).toList();
+    }
+
+    // 2. Filter Harga Terendah
+    if (_currentFilter.minPrice != null) {
+      list = list.where((p) {
+        final rawPrice = double.tryParse(p['raw_price'] ?? '0') ?? 0;
+        return rawPrice >= _currentFilter.minPrice!;
+      }).toList();
+    }
+
+    // 3. Filter Harga Tertinggi
+    if (_currentFilter.maxPrice != null) {
+      list = list.where((p) {
+        final rawPrice = double.tryParse(p['raw_price'] ?? '0') ?? 0;
+        return rawPrice <= _currentFilter.maxPrice!;
+      }).toList();
+    }
+
+    // 4. Urutkan (Sort)
+    if (_currentSort == SortOption.priceLow) {
+      list.sort((a, b) {
+        final aPrice = double.tryParse(a['raw_price'] ?? '0') ?? 0;
+        final bPrice = double.tryParse(b['raw_price'] ?? '0') ?? 0;
+        return aPrice.compareTo(bPrice);
+      });
+    } else if (_currentSort == SortOption.priceHigh) {
+      list.sort((a, b) {
+        final aPrice = double.tryParse(a['raw_price'] ?? '0') ?? 0;
+        final bPrice = double.tryParse(b['raw_price'] ?? '0') ?? 0;
+        return bPrice.compareTo(aPrice);
+      });
+    }
+
     setState(() {
-      _currentSort = option;
-      _sortedResults = List.from(_searchResults);
-      if (option == SortOption.priceLow) {
-        _sortedResults.sort((a, b) {
-          final aPrice = double.tryParse(a['raw_price'] ?? '0') ?? 0;
-          final bPrice = double.tryParse(b['raw_price'] ?? '0') ?? 0;
-          return aPrice.compareTo(bPrice);
-        });
-      } else if (option == SortOption.priceHigh) {
-        _sortedResults.sort((a, b) {
-          final aPrice = double.tryParse(a['raw_price'] ?? '0') ?? 0;
-          final bPrice = double.tryParse(b['raw_price'] ?? '0') ?? 0;
-          return bPrice.compareTo(aPrice);
-        });
-      }
+      _sortedResults = list;
     });
+  }
+
+  bool _matchesCategory(String productCat, String selectedFilter) {
+    final p = productCat.toLowerCase().trim();
+    final f = selectedFilter.toLowerCase().trim();
+    if (p.isEmpty) return f == 'lainnya';
+    if (p == f) return true;
+
+    if (f == 'alat elektronik' && (p.contains('elektronik') || p.contains('alat'))) return true;
+    if (f == 'buku & alat tulis' && (p.contains('buku') || p.contains('tulis'))) return true;
+    if (f == 'makanan & minuman' && (p.contains('makan') || p.contains('minum'))) return true;
+    if (f == 'perawatan diri' && (p.contains('kesehatan') || p.contains('rawat') || p.contains('diri'))) return true;
+    if (f == 'fashion' && p.contains('fashion')) return true;
+    if (f == 'hobi & kreatif' && (p.contains('olahraga') || p.contains('hobi') || p.contains('kreatif'))) return true;
+    if (f == 'perlengkapan kuliah' && p.contains('kuliah')) return true;
+    if (f == 'perabotan kos/rumah' && (p.contains('perabot') || p.contains('rumah') || p.contains('kos'))) return true;
+    if (f == 'jasa' && p.contains('jasa')) return true;
+    if (f == 'lainnya' && !['elektronik', 'fashion', 'makanan', 'buku', 'olahraga', 'kesehatan'].contains(p)) return true;
+
+    return false;
+  }
+
+  Future<void> _openFilterPage() async {
+    final result = await Navigator.push<SearchFilterData>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BuyerSearchFilterPage(
+          initialFilter: _currentFilter,
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _currentFilter = result;
+      });
+      _applyFiltersAndSort();
+    }
+  }
+
+  void _applySort(SortOption option) {
+    _currentSort = option;
+    _applyFiltersAndSort();
     Navigator.pop(context);
   }
 
@@ -307,9 +382,13 @@ class _BuyerSearchResultPageState extends State<BuyerSearchResultPage> {
         children: [
           _buildChip(
             icon: Icons.filter_list_rounded,
-            label: 'Filter',
-            isActive: false,
-            onTap: () {}, // Filter belum aktif
+            label: _currentFilter.isActive
+                ? (_currentFilter.category != null
+                    ? 'Filter: ${_currentFilter.category}'
+                    : 'Filter (Aktif)')
+                : 'Filter',
+            isActive: _currentFilter.isActive,
+            onTap: _openFilterPage,
           ),
           const SizedBox(width: 10),
           _buildChip(

@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/order_bloc.dart';
 import '../bloc/order_event.dart';
 import '../bloc/order_state.dart';
@@ -216,6 +217,67 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     } catch (_) {}
   }
 
+  Future<void> _handleCancelOrder({String? rejectReason}) async {
+    setState(() => _isLoading = true);
+    final currentUserId = _supabase.auth.currentUser?.id;
+    final isSeller = currentUserId != null && currentUserId == _order?['seller_id'];
+    final productName = _order?['product_name_snapshot'] ?? 'produk';
+
+    try {
+      final updateData = <String, dynamic>{
+        'order_status': 'cancelled',
+        if (rejectReason != null) 'notes': 'Ditolak Penjual: $rejectReason',
+      };
+
+      // 1. Update status pesanan di database
+      await _supabase.from('orders').update(updateData).eq('id', widget.orderId);
+
+      // 2. Kembalikan stok produk jika dibatalkan
+      final pId = _order?['product_id']?.toString();
+      final qty = (_order?['quantity'] as num?)?.toInt() ?? 1;
+      if (pId != null && pId.isNotEmpty) {
+        try {
+          final pRes = await _supabase.from('products').select('stock').eq('id', pId).maybeSingle();
+          if (pRes != null && pRes['stock'] != null) {
+            final curStock = (pRes['stock'] as num).toInt();
+            await _supabase.from('products').update({'stock': curStock + qty}).eq('id', pId);
+          }
+        } catch (_) {}
+      }
+
+      // 3. Kirim pesan pembaruan ke chat
+      if (isSeller) {
+        await _sendChatUpdate("❌ Penjual menolak pesanan '$productName'. Alasan: ${rejectReason ?? 'Dibatalkan'}. Stok produk dikembalikan.");
+      } else {
+        await _sendChatUpdate("❌ Pesanan '$productName' telah dibatalkan.");
+      }
+
+      if (mounted) {
+        BrawigoToast.showSuccess(
+          context,
+          message: isSeller ? 'Pesanan berhasil ditolak.' : 'Pesanan berhasil dibatalkan.',
+          title: 'Pesanan Dibatalkan',
+        );
+
+        // Pop kembali ke halaman list pesanan
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        } else {
+          context.go(isSeller ? '/seller/orders' : '/orders');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        BrawigoToast.showError(
+          context,
+          message: e.toString(),
+          title: 'Gagal Membatalkan Pesanan',
+        );
+      }
+    }
+  }
+
   void _confirmCancelOrder() {
     showDialog(
       context: context,
@@ -234,11 +296,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(dialogCtx);
-              context.read<OrderBloc>().add(UpdateOrderStatus(orderId: widget.orderId, status: 'cancelled'));
-              final productName = _order?['product_name_snapshot'] ?? 'produk';
-              await _sendChatUpdate("❌ Pesanan '$productName' telah dibatalkan.");
+              _handleCancelOrder();
             },
             child: const Text('Batalkan'),
           ),
@@ -1203,20 +1263,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         ),
                         onPressed: selectedReason == null
                             ? null
-                            : () async {
+                            : () {
                                 Navigator.pop(ctx);
-                                if (mounted) {
-                                  context.read<OrderBloc>().add(UpdateOrderStatus(
-                                    orderId: widget.orderId,
-                                    status: 'cancelled',
-                                    extraData: {
-                                      'notes': 'Ditolak Penjual: $selectedReason',
-                                    },
-                                  ));
-                                  await _sendChatUpdate(
-                                    "❌ Penjual menolak pesanan '$productName'. Alasan: $selectedReason. Stok produk akan dikembalikan.",
-                                  );
-                                }
+                                _handleCancelOrder(rejectReason: selectedReason);
                               },
                         child: Text(
                           'Kirim',

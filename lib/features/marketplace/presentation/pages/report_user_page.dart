@@ -155,11 +155,19 @@ class _ReportUserPageState extends State<ReportUserPage> {
 
       if (prodId != null) {
         try {
+          final String rawDesc = _descController.text.trim();
+          final String payloadDesc = uploadedUrls.isNotEmpty
+              ? jsonEncode({
+                  'description': rawDesc,
+                  'images': uploadedUrls,
+                })
+              : rawDesc;
+
           await _supabase.from('product_reports').insert({
             'product_id': prodId,
             'reporter_id': currentUserId,
             'reason': _selectedReason ?? 'Laporan Toko',
-            'description': _descController.text.trim(),
+            'description': payloadDesc,
             'status': 'pending',
           });
         } catch (e) {

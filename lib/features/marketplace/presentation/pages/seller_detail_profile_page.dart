@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/widgets/brawigo_toast.dart';
 import 'seller_reviews_page.dart';
+import 'package:brawigo/features/marketplace/data/services/seller_reports_service.dart';
 
 class SellerDetailProfilePage extends StatefulWidget {
   final String sellerId;
@@ -116,51 +117,13 @@ class _SellerDetailProfilePageState extends State<SellerDetailProfilePage> {
         _averageRating = _totalReviews > 0 ? (sumRating / _totalReviews) : 0.0;
       }
 
-      int bioReportCount = 0;
-      if (profileRes != null && profileRes['bio'] != null) {
-        final rawBio = profileRes['bio'].toString();
-        if (rawBio.trim().startsWith('{')) {
-          try {
-            final parsed = jsonDecode(rawBio);
-            if (parsed is Map && parsed['store_reports'] is List) {
-              bioReportCount = (parsed['store_reports'] as List).length;
-            }
-          } catch (_) {}
-        }
-      }
-
-      int dbReportCount = 0;
-      if (productIds.isNotEmpty) {
-        try {
-          final repRes = await _supabase
-              .from('product_reports')
-              .select('id')
-              .inFilter('product_id', productIds);
-          dbReportCount = (repRes as List).length;
-        } catch (_) {}
-      }
-
-      int chatReportCount = 0;
+      int rCount = 0;
       try {
-        final convsRes = await _supabase
-            .from('conversations')
-            .select('id')
-            .eq('seller_id', widget.sellerId);
-        final convIds = (convsRes as List).map((c) => c['id'].toString()).toList();
-        if (convIds.isNotEmpty) {
-          final msgRes = await _supabase
-              .from('messages')
-              .select('id')
-              .inFilter('conversation_id', convIds)
-              ;
-          final reportMsgs = (msgRes as List).where((m) => (m['message'] ?? '').toString().contains('[LAPORAN]')).toList();
-          chatReportCount = reportMsgs.length;
-        }
-      } catch (_) {}
-
-      int rCount = dbReportCount;
-      if (bioReportCount > rCount) rCount = bioReportCount;
-      if (chatReportCount > rCount) rCount = chatReportCount;
+        final reports = await SellerReportsService.fetchReports(widget.sellerId);
+        rCount = reports.length;
+      } catch (e) {
+        debugPrint('Error fetching reports in seller_detail_profile_page: $e');
+      }
 
       if (mounted) {
         setState(() {

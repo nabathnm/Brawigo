@@ -7,6 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/marketplace_bloc.dart';
+import '../bloc/marketplace_event.dart';
 import 'main_screen.dart';
 
 class PaymentConfirmationPage extends StatefulWidget {
@@ -302,10 +305,12 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                 ),
                 onPressed: () {
                   Navigator.pop(dialogContext);
-                  Navigator.pushAndRemoveUntil(
-                    context,
+                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                     MaterialPageRoute(
-                      builder: (_) => const MainScreen(initialIndex: 3, isSeller: false),
+                      builder: (_) => BlocProvider(
+                        create: (_) => MarketplaceBloc()..add(LoadProducts()),
+                        child: const MainScreen(initialIndex: 3, isSeller: false),
+                      ),
                     ),
                     (route) => false,
                   );

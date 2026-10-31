@@ -10,6 +10,7 @@ import 'package:brawigo/features/marketplace/presentation/pages/manage_products_
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/wishlist_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'edit_store_profile_page.dart';
 import 'edit_buyer_profile_page.dart';
 
@@ -263,6 +264,27 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
     );
   }
 
+  Future<void> _openFeedbackForm() async {
+    final uri = Uri.parse('https://forms.gle/9R2hWAZ1pc1E82G86');
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      if (mounted) {
+        BrawigoToast.showError(
+          context,
+          title: 'Gagal Membuka Link',
+          message: 'Silakan buka formulir di: https://forms.gle/9R2hWAZ1pc1E82G86',
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -398,13 +420,7 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                             _menuTile(
                               icon: Icons.thumb_up_rounded,
                               label: 'Suka Brawigo? Nilai kami!',
-                              onTap: () {
-                                BrawigoToast.showSuccess(
-                                  context,
-                                  title: 'Terima Kasih!',
-                                  message: 'Terima kasih atas penilaian dan dukunganmu! 🎉',
-                                );
-                              },
+                              onTap: _openFeedbackForm,
                             ),
                           ]),
                           const SizedBox(height: 16),

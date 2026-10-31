@@ -1,10 +1,10 @@
-import 'dart:convert';
 import 'package:brawigo/core/utils/seller_profile_checker.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/widgets/header.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/product_detail_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/manage_products_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/seller_earnings_page.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/seller_reports_list_page.dart';
+import 'package:brawigo/features/marketplace/data/services/seller_reports_service.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_bloc.dart';
 import 'package:brawigo/features/order/presentation/bloc/order_event.dart';
 import 'package:brawigo/features/order/presentation/pages/order_list_page.dart';
@@ -161,75 +161,14 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
         growthText = '+100%';
       }
 
-      // 3. Ambil Jumlah Laporan Pelanggaran Masuk
-      // Menggunakan 3 sumber dengan deduplikasi:
-      // - Sumber 1: profiles.bio store_reports
-      // - Sumber 2: product_reports table
-      // - Sumber 3: Pesan laporan di conversations seller (selalu lolos RLS Supabase)
+      // 3. Ambil Jumlah Laporan Pelanggaran Masuk secara tersinkronisasi
       int reportCount = 0;
-
-      // Sumber 1: profiles.bio -> store_reports
-      int bioReportCount = 0;
-      if (profileRes != null && profileRes['bio'] != null) {
-        final rawBio = profileRes['bio'].toString();
-        if (rawBio.trim().startsWith('{')) {
-          try {
-            final parsed = jsonDecode(rawBio);
-            if (parsed is Map && parsed['store_reports'] is List) {
-              bioReportCount = (parsed['store_reports'] as List).length;
-            }
-            if (bioReportCount == 0 && parsed is Map && parsed['store_reports_count'] is int) {
-              bioReportCount = parsed['store_reports_count'] as int;
-            }
-          } catch (_) {}
-        }
-      }
-
-      // Sumber 2: product_reports table
-      int dbReportCount = 0;
       try {
-        final pRes = await _supabase.from('products').select('id').eq('seller_id', user.id);
-        final pList = (pRes as List);
-        if (pList.isNotEmpty) {
-          final pIds = pList.map((p) => p['id'].toString()).toList();
-          final prRes = await _supabase
-              .from('product_reports')
-              .select('id')
-              .inFilter('product_id', pIds);
-          dbReportCount = (prRes as List).length;
-        }
+        final reports = await SellerReportsService.fetchReports(user.id);
+        reportCount = reports.length;
       } catch (e) {
-        debugPrint('Error fetching product_reports: $e');
+        debugPrint('Error fetching reports in seller home: $e');
       }
-
-      // Sumber 3: Pesan laporan di conversations seller (karena RLS conversations mengizinkan seller membaca)
-      int chatReportCount = 0;
-      try {
-        final convsRes = await _supabase
-            .from('conversations')
-            .select('id')
-            .eq('seller_id', user.id);
-        final convIds = (convsRes as List).map((c) => c['id'].toString()).toList();
-        if (convIds.isNotEmpty) {
-          final msgRes = await _supabase
-              .from('messages')
-              .select('id, message')
-              .inFilter('conversation_id', convIds)
-              ;
-          final reportMsgs = (msgRes as List).where((m) => (m['message'] ?? '').toString().contains('[LAPORAN]')).toList();
-          chatReportCount = reportMsgs.length;
-        }
-      } catch (e) {
-        debugPrint('Error fetching chat reports: $e');
-      }
-
-      // Ambil nilai terbesar yang ditemukan dari sumber-sumber valid
-      int maxFound = dbReportCount;
-      if (bioReportCount > maxFound) maxFound = bioReportCount;
-      if (chatReportCount > maxFound) maxFound = chatReportCount;
-      reportCount = maxFound;
-
-      debugPrint('[SellerHome] bioReportCount=$bioReportCount, dbReportCount=$dbReportCount, chatReportCount=$chatReportCount, final=$reportCount');
 
       if (mounted) {
         setState(() {

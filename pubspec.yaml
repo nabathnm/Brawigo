@@ -25,6 +25,7 @@ dependencies:
   dotted_border: ^3.1.0
   intl: ^0.20.2
   shared_preferences: ^2.5.4
+  url_launcher: ^6.3.3
 
 dev_dependencies:
   flutter_test:

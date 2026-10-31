@@ -5,6 +5,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:brawigo/core/routes/router.dart';
 import 'package:brawigo/features/auth/presentation/blocs/auth_bloc.dart';
+import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
+import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
 import 'package:brawigo/core/utils/constants/brawigo_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -32,6 +34,10 @@ class MyApp extends StatelessWidget {
         BlocProvider<AuthBloc>(
           create: (context) =>
               AuthBloc(supabaseClient: Supabase.instance.client),
+        ),
+        BlocProvider<MarketplaceBloc>(
+          create: (context) =>
+              MarketplaceBloc()..add(LoadProducts()),
         ),
       ],
       child: MaterialApp.router(

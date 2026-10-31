@@ -105,7 +105,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/order/:id',
       builder: (context, state) {
-        final orderId = state.pathParameters['id']!;
+        final orderId = state.pathParameters['id'] ?? '';
         return BlocProvider(
           create: (context) => OrderBloc(),
           child: OrderDetailPage(orderId: orderId),
@@ -129,7 +129,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/seller/orders/:id',
       builder: (context, state) {
-        final orderId = state.pathParameters['id']!;
+        final orderId = state.pathParameters['id'] ?? '';
         return BlocProvider(
           create: (context) => OrderBloc(),
           child: OrderDetailPage(orderId: orderId),

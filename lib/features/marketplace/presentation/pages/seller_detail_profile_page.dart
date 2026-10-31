@@ -156,7 +156,7 @@ class _SellerDetailProfilePageState extends State<SellerDetailProfilePage> {
     final faculty = _profile?['faculty'] ?? 'Filkom';
     final studyProgram = _profile?['study_program'] ?? 'Teknik Informatika';
     final email = _profile?['email'] ?? 'penjual@ub.ac.id';
-    final photoUrl = _profile?['profile_photo_url']?.toString();
+    String? photoUrl = _profile?['profile_photo_url']?.toString();
     final phone = _profile?['phone_number']?.toString() ?? '+6282187954225';
     final joinDate = _formatJoinDate(_profile?['created_at']?.toString());
 
@@ -175,6 +175,11 @@ class _SellerDetailProfilePageState extends State<SellerDetailProfilePage> {
           final link = parsed['store_link']?.toString().trim();
           if (link != null && link.isNotEmpty) {
             storeLink = link;
+          }
+          // Prioritaskan store_photo_url dari bio; fallback ke profile_photo_url
+          final storePhoto = parsed['store_photo_url']?.toString().trim();
+          if (storePhoto != null && storePhoto.isNotEmpty) {
+            photoUrl = storePhoto;
           }
         }
       } else if (rawBio.trim().isNotEmpty) {

@@ -376,17 +376,23 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
     final faculty = _sellerProfile?['faculty'] ?? 'Filkom';
     final studyProgram = _sellerProfile?['study_program'] ?? 'Teknik Informatika';
     final email = _sellerProfile?['email'] ?? 'penjual@ub.ac.id';
-    final photoUrl = _sellerProfile?['profile_photo_url']?.toString();
-
-    String storeName = fullName;
-    try {
-      final bio = _sellerProfile?['bio']?.toString() ?? '';
-      if (bio.startsWith('{') && bio.contains('"')) {
-        final parsed = jsonDecode(bio);
-        if (parsed is Map && parsed['store_name'] != null && parsed['store_name'].toString().isNotEmpty) {
-          storeName = parsed['store_name'].toString();
-        }
-      }
+    String storeName = fullName;
+    String? photoUrl = _sellerProfile?['profile_photo_url']?.toString();
+    try {
+      final bio = _sellerProfile?['bio']?.toString() ?? '';
+      if (bio.startsWith('{') && bio.contains('"')) {
+        final parsed = jsonDecode(bio);
+        if (parsed is Map) {
+          if (parsed['store_name'] != null && parsed['store_name'].toString().isNotEmpty) {
+            storeName = parsed['store_name'].toString();
+          }
+          // Prioritaskan store_photo_url dari bio; fallback ke profile_photo_url
+          final storePhoto = parsed['store_photo_url']?.toString().trim();
+          if (storePhoto != null && storePhoto.isNotEmpty) {
+            photoUrl = storePhoto;
+          }
+        }
+      }
     } catch (_) {}
 
     return Scaffold(

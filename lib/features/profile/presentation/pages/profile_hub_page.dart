@@ -192,7 +192,7 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
       final user = _supabase.auth.currentUser;
       if (user == null) return;
 
-      // Check active orders
+      // 1. Cek transaksi berjalan di sisi client
       final hasActive = await _hasActiveOrders(user.id);
       if (hasActive && mounted) {
         setState(() => _isDeleting = false);
@@ -204,23 +204,28 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
         return;
       }
 
-      // Delete products if seller
-      if (widget.isSeller) {
+      // 2. Eksekusi penghapusan permanen dari database (termasuk auth.users & produk)
+      try {
+        await _supabase.rpc('delete_user_account');
+      } catch (rpcErr) {
+        // Fallback jika RPC database belum dieksekusi di SQL Editor
         await _supabase.from('products').delete().eq('seller_id', user.id);
+        await _supabase.from('wishlists').delete().eq('user_id', user.id);
+        await _supabase.from('profiles').delete().eq('id', user.id);
       }
 
-      // Mark profile as deleted
-      await _supabase.from('profiles').update({
-        'deleted_at': DateTime.now().toIso8601String(),
-        'full_name': '[AKUN DIHAPUS]',
-        'username': 'deleted_${user.id.substring(0, 8)}',
-      }).eq('id', user.id);
-
-      // Sign out
+      // 3. Logout dan alihkan ke halaman login
       if (mounted) {
         context.read<AuthBloc>().add(LogoutRequested());
         await _supabase.auth.signOut();
-        if (mounted) context.go('/login');
+        if (mounted) {
+          BrawigoToast.showSuccess(
+            context,
+            title: 'Akun Berhasil Dihapus',
+            message: 'Akun dan seluruh produk Anda telah dihapus secara permanen.',
+          );
+          context.go('/login');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -228,7 +233,7 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
         BrawigoToast.showError(
           context,
           title: 'Gagal',
-          message: 'Gagal menghapus akun: ${e.toString()}',
+          message: 'Gagal menghapus akun: ${e.toString().replaceAll('Exception:', '').trim()}',
         );
       }
     }

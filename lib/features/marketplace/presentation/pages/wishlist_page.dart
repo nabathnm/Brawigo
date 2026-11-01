@@ -557,7 +557,9 @@ class _WishlistPageState extends State<WishlistPage> {
   // Card produk compact & proporsional persis Gambar 2 (Zero-overflow responsive)
   Widget _buildProductCard(Map<String, dynamic> item) {
     final name = item['product_name']?.toString() ?? 'Produk';
-    final category = item['category_name']?.toString() ?? 'Alat Elektronik';
+    final category = item['category_name']?.toString() ??
+        (item['categories'] is Map ? item['categories']['name']?.toString() : null) ??
+        'Lainnya';
     final price = (item['price'] as num?)?.toDouble() ?? 0;
     final thumbnailUrl = item['thumbnail_url']?.toString();
     final wishlistId = item['wishlist_id']?.toString() ?? '';

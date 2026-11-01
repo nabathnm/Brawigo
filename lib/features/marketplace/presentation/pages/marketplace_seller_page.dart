@@ -959,7 +959,9 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
     final String? imageUrl = product['thumbnail_url'] as String?;
     final int stock = (product['stock'] as num?)?.toInt() ?? 0;
     final String status = product['status'] as String? ?? 'active';
-    final String categoryName = product['category_name'] as String? ?? 'Alat Elektronik';
+    final String categoryName = product['category_name'] as String? ??
+        (product['categories'] is Map ? product['categories']['name'] as String? : null) ??
+        'Lainnya';
     final dynamic priceVal = product['price'] ?? 0;
     final num priceNum = (priceVal is num) ? priceVal : (_parseAmount(priceVal));
 

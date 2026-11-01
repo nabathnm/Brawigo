@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SearchFilterData {
   final String? category;
@@ -36,7 +37,7 @@ class _BuyerSearchFilterPageState extends State<BuyerSearchFilterPage> {
   late TextEditingController _minPriceController;
   late TextEditingController _maxPriceController;
 
-  static const List<String> _categories = [
+  static const List<String> _fallbackCategories = [
     'Alat Elektronik',
     'Perlengkapan Kuliah',
     'Buku & Alat Tulis',
@@ -48,6 +49,8 @@ class _BuyerSearchFilterPageState extends State<BuyerSearchFilterPage> {
     'Jasa',
     'Lainnya',
   ];
+  List<String> _categories = _fallbackCategories;
+  bool _isLoadingCategories = true;
 
   final _currencyFormatter = NumberFormat.decimalPattern('id_ID');
 
@@ -65,6 +68,30 @@ class _BuyerSearchFilterPageState extends State<BuyerSearchFilterPage> {
     _maxPriceController = TextEditingController(
       text: maxPrice != null ? _currencyFormatter.format(maxPrice.toInt()) : '',
     );
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final res = await Supabase.instance.client
+          .from('categories')
+          .select('name')
+          .order('name');
+      final names = (res as List)
+          .map((c) => c['name']?.toString() ?? '')
+          .where((n) => n.isNotEmpty)
+          .toList();
+      if (names.isNotEmpty && mounted) {
+        setState(() {
+          _categories = names;
+          _isLoadingCategories = false;
+        });
+      } else if (mounted) {
+        setState(() => _isLoadingCategories = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingCategories = false);
+    }
   }
 
   @override

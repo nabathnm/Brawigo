@@ -267,18 +267,15 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
       final convs = await _supabase
           .from('conversations')
           .select('id, product_id, buyer_id, seller_id')
-          .or('buyer_id.eq.${currentUser.id},seller_id.eq.${currentUser.id}')
-          .order('updated_at', ascending: false);
+          .eq('buyer_id', currentUser.id)
+          .eq('seller_id', widget.sellerId)
+          .order('updated_at', ascending: false)
+          .limit(1);
 
       Map<String, dynamic>? existingConv;
-      for (final c in (convs as List)) {
-        final bId = c['buyer_id']?.toString();
-        final sId = c['seller_id']?.toString();
-        if ((bId == currentUser.id && sId == widget.sellerId) ||
-            (bId == widget.sellerId && sId == currentUser.id)) {
-          existingConv = Map<String, dynamic>.from(c);
-          break;
-        }
+      final convList = convs as List;
+      if (convList.isNotEmpty) {
+        existingConv = Map<String, dynamic>.from(convList.first);
       }
 
       String conversationId;
@@ -300,14 +297,15 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
           conversationId = created['id'];
         } on PostgrestException catch (e) {
           if (e.code == '23505') {
-            final convList = await _supabase
+            final fallbackList = await _supabase
                 .from('conversations')
                 .select('id')
-                .or('and(buyer_id.eq.${currentUser.id},seller_id.eq.${widget.sellerId}),and(buyer_id.eq.${widget.sellerId},seller_id.eq.${currentUser.id})')
+                .eq('buyer_id', currentUser.id)
+                .eq('seller_id', widget.sellerId)
                 .order('updated_at', ascending: false)
                 .limit(1);
-            if ((convList as List).isNotEmpty) {
-              conversationId = convList.first['id'];
+            if ((fallbackList as List).isNotEmpty) {
+              conversationId = fallbackList.first['id'];
             } else {
               rethrow;
             }
@@ -325,6 +323,7 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
               conversationId: conversationId,
               otherUserName: storeName,
               otherUserId: widget.sellerId,
+              otherUserPhoto: _sellerProfile?['profile_photo_url']?.toString(),
             ),
           ),
         );
@@ -376,23 +375,40 @@ class _SellerProfilePageState extends State<SellerProfilePage> {
     final faculty = _sellerProfile?['faculty'] ?? 'Filkom';
     final studyProgram = _sellerProfile?['study_program'] ?? 'Teknik Informatika';
     final email = _sellerProfile?['email'] ?? 'penjual@ub.ac.id';
-    String storeName = fullName;
-    String? photoUrl = _sellerProfile?['profile_photo_url']?.toString();
-    try {
-      final bio = _sellerProfile?['bio']?.toString() ?? '';
-      if (bio.startsWith('{') && bio.contains('"')) {
-        final parsed = jsonDecode(bio);
-        if (parsed is Map) {
-          if (parsed['store_name'] != null && parsed['store_name'].toString().isNotEmpty) {
-            storeName = parsed['store_name'].toString();
-          }
-          // Prioritaskan store_photo_url dari bio; fallback ke profile_photo_url
-          final storePhoto = parsed['store_photo_url']?.toString().trim();
-          if (storePhoto != null && storePhoto.isNotEmpty) {
-            photoUrl = storePhoto;
-          }
-        }
-      }
+    String storeName = fullName;
+
+    String? photoUrl = _sellerProfile?['profile_photo_url']?.toString();
+
+    try {
+
+      final bio = _sellerProfile?['bio']?.toString() ?? '';
+
+      if (bio.startsWith('{') && bio.contains('"')) {
+
+        final parsed = jsonDecode(bio);
+
+        if (parsed is Map) {
+
+          if (parsed['store_name'] != null && parsed['store_name'].toString().isNotEmpty) {
+
+            storeName = parsed['store_name'].toString();
+
+          }
+
+          // Prioritaskan store_photo_url dari bio; fallback ke profile_photo_url
+
+          final storePhoto = parsed['store_photo_url']?.toString().trim();
+
+          if (storePhoto != null && storePhoto.isNotEmpty) {
+
+            photoUrl = storePhoto;
+
+          }
+
+        }
+
+      }
+
     } catch (_) {}
 
     return Scaffold(

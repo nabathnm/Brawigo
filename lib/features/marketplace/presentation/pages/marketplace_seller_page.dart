@@ -128,7 +128,9 @@ class _MarketPlaceSellerPageState extends State<MarketPlaceSellerPage> {
         final status = (order['order_status'] ?? order['status'] ?? '').toString().toLowerCase();
         final paymentStatus = (order['payment_status'] ?? '').toString().toLowerCase();
         final createdAtStr = order['created_at']?.toString();
-        final dt = createdAtStr != null ? DateTime.tryParse(createdAtStr) : null;
+        final dtRaw = createdAtStr != null ? DateTime.tryParse(createdAtStr) : null;
+        // Convert to local time so orders are bucketed by the seller's local date/month
+        final dt = dtRaw?.toLocal();
         final amount = _parseAmount(order['total_amount'] ?? order['product_price_snapshot']);
 
         // Pendapatan selesai

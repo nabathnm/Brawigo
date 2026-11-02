@@ -29,6 +29,8 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
   bool _isWishlisted = false;
   String? _wishlistId;
   bool _isTogglingWishlist = false;
+  int _wishlistCount = 0;
+  RealtimeChannel? _wishlistChannel;
 
   @override
   void initState() {
@@ -37,7 +39,75 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
     _fetchImages();
     _refreshProductData();
     _saveToRecentlyViewed();
+    _wishlistCount = (widget.product['wishlist_count'] as num?)?.toInt() ?? 0;
     _checkWishlistStatus();
+    _fetchWishlistCount();
+    _subscribeToWishlistChanges();
+  }
+
+  Future<void> _fetchWishlistCount() async {
+    final productId = widget.product['id']?.toString();
+    if (productId == null || productId.isEmpty) return;
+    int? resolvedCount;
+
+    // 1. Prioritaskan RPC get_product_wishlist_count (menghitung total riil dari seluruh user tanpa batasan RLS)
+    try {
+      final rpcRes = await Supabase.instance.client.rpc(
+        'get_product_wishlist_count',
+        params: {'p_product_id': productId},
+      );
+      if (rpcRes != null) {
+        resolvedCount = (rpcRes as num).toInt();
+      }
+    } catch (_) {}
+
+    // 2. Jika RPC belum tersedia, baca dari products.wishlist_count (RLS tabel products bersifat publik)
+    if (resolvedCount == null) {
+      try {
+        final pRes = await Supabase.instance.client
+            .from('products')
+            .select('wishlist_count')
+            .eq('id', productId)
+            .maybeSingle();
+        if (pRes != null && pRes['wishlist_count'] != null) {
+          resolvedCount = (pRes['wishlist_count'] as num).toInt();
+        }
+      } catch (_) {}
+    }
+
+    // 3. Fallback: jika kedua cara di atas belum memberikan hasil, gunakan nilai yang ada di state/product
+    resolvedCount ??= (widget.product['wishlist_count'] as num?)?.toInt() ?? _wishlistCount;
+
+    if (mounted) {
+      setState(() {
+        _wishlistCount = resolvedCount!;
+      });
+    }
+  }
+
+  void _subscribeToWishlistChanges() {
+    final productId = widget.product['id']?.toString();
+    if (productId == null || productId.isEmpty) return;
+
+    try {
+      _wishlistChannel = Supabase.instance.client
+          .channel('wishlist_realtime_$productId')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'wishlists',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'product_id',
+              value: productId,
+            ),
+            callback: (_) {
+              _fetchWishlistCount();
+              _checkWishlistStatus();
+            },
+          )
+          .subscribe();
+    } catch (_) {}
   }
 
   Future<void> _checkWishlistStatus() async {
@@ -88,7 +158,14 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
     try {
       if (_isWishlisted && _wishlistId != null) {
         await Supabase.instance.client.from('wishlists').delete().eq('id', _wishlistId!);
-        if (mounted) setState(() { _isWishlisted = false; _wishlistId = null; });
+        if (mounted) {
+          setState(() {
+            _isWishlisted = false;
+            _wishlistId = null;
+            _wishlistCount = (_wishlistCount > 0) ? _wishlistCount - 1 : 0;
+          });
+          _fetchWishlistCount();
+        }
         if (mounted) {
           BrawigoToast.showInfo(
             context,
@@ -103,7 +180,14 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
             .insert({'user_id': user.id, 'product_id': productId})
             .select('id')
             .single();
-        if (mounted) setState(() { _isWishlisted = true; _wishlistId = res['id']?.toString(); });
+        if (mounted) {
+          setState(() {
+            _isWishlisted = true;
+            _wishlistId = res['id']?.toString();
+            _wishlistCount++;
+          });
+          _fetchWishlistCount();
+        }
         if (mounted) {
           BrawigoToast.showSuccess(
             context,
@@ -146,6 +230,7 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
         }
       } catch (_) {}
       await _fetchImages();
+      await _fetchWishlistCount();
     }
   }
 
@@ -167,6 +252,7 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
 
   @override
   void dispose() {
+    _wishlistChannel?.unsubscribe();
     _pageController.dispose();
     super.dispose();
   }
@@ -208,18 +294,15 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
       final convs = await Supabase.instance.client
           .from('conversations')
           .select('id, product_id, buyer_id, seller_id')
-          .or('buyer_id.eq.${currentUser.id},seller_id.eq.${currentUser.id}')
-          .order('updated_at', ascending: false);
+          .eq('buyer_id', currentUser.id)
+          .eq('seller_id', sellerId)
+          .order('updated_at', ascending: false)
+          .limit(1);
 
       Map<String, dynamic>? existingConv;
-      for (final c in (convs as List)) {
-        final bId = c['buyer_id']?.toString();
-        final sId = c['seller_id']?.toString();
-        if ((bId == currentUser.id && sId == sellerId) ||
-            (bId == sellerId && sId == currentUser.id)) {
-          existingConv = Map<String, dynamic>.from(c);
-          break;
-        }
+      final convList = convs as List;
+      if (convList.isNotEmpty) {
+        existingConv = Map<String, dynamic>.from(convList.first);
       }
 
       String conversationId;
@@ -253,14 +336,15 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
           shouldSendMention = true;
         } on PostgrestException catch (e) {
           if (e.code == '23505') {
-            final convList = await Supabase.instance.client
+            final fallbackList = await Supabase.instance.client
                 .from('conversations')
                 .select('id, product_id')
-                .or('and(buyer_id.eq.${currentUser.id},seller_id.eq.$sellerId),and(buyer_id.eq.$sellerId,seller_id.eq.${currentUser.id})')
+                .eq('buyer_id', currentUser.id)
+                .eq('seller_id', sellerId)
                 .order('updated_at', ascending: false)
                 .limit(1);
-            if ((convList as List).isNotEmpty) {
-              conversationId = convList.first['id'];
+            if ((fallbackList as List).isNotEmpty) {
+              conversationId = fallbackList.first['id'];
               shouldSendMention = true;
               await Supabase.instance.client
                   .from('conversations')
@@ -280,10 +364,11 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
 
       final sellerProfile = await Supabase.instance.client
           .from('profiles')
-          .select('full_name')
+          .select('full_name, profile_photo_url')
           .eq('id', sellerId)
           .maybeSingle();
       final sellerName = sellerProfile?['full_name'] ?? 'Penjual';
+      final sellerPhoto = sellerProfile?['profile_photo_url']?.toString();
 
       if (!mounted) return;
       final pName = (widget.product['product_name'] ?? widget.product['name'])?.toString() ?? '';
@@ -311,6 +396,7 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
             conversationId: conversationId,
             otherUserName: sellerName,
             otherUserId: sellerId,
+            otherUserPhoto: sellerPhoto,
             productData: mappedProductData,
             sendProductMention: shouldSendMention,
           ),
@@ -535,30 +621,7 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
                         ),
                       ),
                     ),
-                  // Wishlist Heart Button
-                  if (!isOwnProduct)
-                    Positioned(
-                      top: MediaQuery.of(context).padding.top + 64,
-                      right: 16,
-                      child: GestureDetector(
-                        onTap: _isTogglingWishlist ? null : _toggleWishlist,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: _isTogglingWishlist
-                              ? const Center(child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF2B5F9E))))
-                              : Icon(
-                                  _isWishlisted ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                                  size: 22,
-                                  color: _isWishlisted ? Colors.red : Colors.black87,
-                                ),
-                        ),
-                      ),
-                    ),
+
                   // Panah Kiri Navigasi Gambar
                   if (_images.length > 1 && _currentImageIndex > 0)
                     Positioned(
@@ -652,56 +715,128 @@ class _BuyerProductDetailPageState extends State<BuyerProductDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    product['product_name'] ??
-                        product['name'] ??
-                        'Rice Cooker Mikoya',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2B5F9E),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _formatPrice(product['price']),
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF15243C),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Builder(
-                    builder: (context) {
-                      final stock = product['stock'];
-                      final stockInt = (stock is int) ? stock : int.tryParse(stock?.toString() ?? '') ?? 0;
-                      final stockColor = stockInt == 0
-                          ? Colors.red
-                          : stockInt <= 3
-                              ? const Color(0xFFD97706)
-                              : const Color(0xFF22C55E);
-                      return Row(
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Sisi Kiri: Nama Produk, Harga, dan Sisa Stok
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product['product_name'] ??
+                                  product['name'] ??
+                                  'Rice Cooker Mikoya',
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2B5F9E),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _formatPrice(product['price']),
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF15243C),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Builder(
+                              builder: (context) {
+                                final stock = product['stock'];
+                                final stockInt = (stock is int) ? stock : int.tryParse(stock?.toString() ?? '') ?? 0;
+                                final stockColor = stockInt == 0
+                                    ? Colors.red
+                                    : stockInt <= 3
+                                        ? const Color(0xFFD97706)
+                                        : const Color(0xFF22C55E);
+                                return Row(
+                                  children: [
+                                    Icon(
+                                      stockInt == 0 ? Icons.remove_shopping_cart_outlined : Icons.inventory_2_outlined,
+                                      size: 14,
+                                      color: stockColor,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      stockInt == 0
+                                          ? 'Stok Habis'
+                                          : 'Sisa stok: $stockInt item',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: stockColor,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      // Sisi Kanan: Tombol Wishlist Heart + Counter Wishlist
+                      Column(
                         children: [
-                          Icon(
-                            stockInt == 0 ? Icons.remove_shopping_cart_outlined : Icons.inventory_2_outlined,
-                            size: 14,
-                            color: stockColor,
+                          GestureDetector(
+                            onTap: _isTogglingWishlist ? null : _toggleWishlist,
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: _isWishlisted
+                                      ? const Color(0xFFEF4444)
+                                      : const Color(0xFFE2E8F0),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: _isTogglingWishlist
+                                  ? const Center(
+                                      child: SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFF2B5F9E),
+                                        ),
+                                      ),
+                                    )
+                                  : Icon(
+                                      _isWishlisted
+                                          ? Icons.favorite_rounded
+                                          : Icons.favorite_border_rounded,
+                                      size: 24,
+                                      color: _isWishlisted
+                                          ? const Color(0xFFEF4444)
+                                          : const Color(0xFF64748B),
+                                    ),
+                            ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            stockInt == 0
-                                ? 'Stok Habis'
-                                : 'Sisa stok: $stockInt item',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: stockColor,
+                            '$_wishlistCount',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF64748B),
                             ),
                           ),
                         ],
-                      );
-                    },
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 20),
 

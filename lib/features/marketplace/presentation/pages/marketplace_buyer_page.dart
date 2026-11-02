@@ -9,6 +9,8 @@ import '../bloc/marketplace_bloc.dart';
 import '../bloc/marketplace_state.dart';
 import '../bloc/marketplace_event.dart';
 import 'buyer_product_detail_page.dart';
+import 'latest_products_page.dart';
+import 'popular_products_page.dart';
 
 class MarketplaceBuyerPage extends StatefulWidget {
   final bool hideBottomNav;
@@ -83,10 +85,22 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
               products = state.products;
             }
 
-            List<Map<String, dynamic>> displayedProducts = products;
+            // Filter agar produk yang stoknya habis (<= 0) tidak masuk ke carousel beranda
+            final inStockProducts = products.where((p) {
+              final stockVal = p['stock'];
+              final int stock = (stockVal is int)
+                  ? stockVal
+                  : (stockVal is num)
+                      ? stockVal.toInt()
+                      : int.tryParse(stockVal?.toString() ?? '') ?? 0;
+              final status = (p['status'] ?? 'active').toString().toLowerCase();
+              return stock > 0 && status != 'deleted' && status != 'sold_out';
+            }).toList();
+
+            List<Map<String, dynamic>> displayedProducts = inStockProducts;
             if (_selectedCategoryName != null &&
                 _selectedCategoryName!.isNotEmpty) {
-              displayedProducts = products.where((p) {
+              displayedProducts = inStockProducts.where((p) {
                 final pCat =
                     (p['category_name'] ??
                             (p['categories'] is Map
@@ -99,6 +113,29 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                 return pCat == _selectedCategoryName!.toLowerCase().trim();
               }).toList();
             }
+
+            // Produk Terbaru diurutkan dari yang paling baru diupload, ambil maksimal 10
+            final latestProducts = List<Map<String, dynamic>>.from(displayedProducts);
+            latestProducts.sort((a, b) {
+              final aTime = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime(1970);
+              final bTime = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime(1970);
+              return bTime.compareTo(aTime);
+            });
+            final latest10 = latestProducts.take(10).toList();
+
+            // Produk Populer diurutkan dari wishlist_count terbanyak, lalu created_at terbaru, ambil maksimal 10
+            final popularProducts = List<Map<String, dynamic>>.from(displayedProducts);
+            popularProducts.sort((a, b) {
+              final aCount = (a['wishlist_count'] as num?)?.toInt() ?? 0;
+              final bCount = (b['wishlist_count'] as num?)?.toInt() ?? 0;
+              if (bCount != aCount) {
+                return bCount.compareTo(aCount);
+              }
+              final aTime = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime(1970);
+              final bTime = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime(1970);
+              return bTime.compareTo(aTime);
+            });
+            final popular10 = popularProducts.take(10).toList();
 
             return RefreshIndicator(
               onRefresh: () async {
@@ -115,7 +152,17 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                     _buildSearchBar(),
                     _buildCarousel(),
                     _buildCategorySelector(),
-                    _buildSectionTitle('Produk Terbaru'),
+                    _buildSectionTitle(
+                      'Produk Terbaru',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LatestProductsPage(),
+                          ),
+                        );
+                      },
+                    ),
                     state is MarketplaceLoading
                         ? const Center(
                             child: Padding(
@@ -123,8 +170,18 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                               child: CircularProgressIndicator(),
                             ),
                           )
-                        : _buildHorizontalProductList(displayedProducts),
-                    _buildSectionTitle('Produk Populer'),
+                        : _buildHorizontalProductList(latest10),
+                    _buildSectionTitle(
+                      'Produk Populer',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PopularProductsPage(),
+                          ),
+                        );
+                      },
+                    ),
                     state is MarketplaceLoading
                         ? const Center(
                             child: Padding(
@@ -132,7 +189,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                               child: CircularProgressIndicator(),
                             ),
                           )
-                        : _buildHorizontalProductList(displayedProducts),
+                        : _buildHorizontalProductList(popular10),
                     const SizedBox(height: 30),
                   ],
                 ),
@@ -501,27 +558,35 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, {VoidCallback? onTap}) {
+    final row = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: BrawigoColors.blue950,
+          ),
+        ),
+        const Icon(
+          Icons.chevron_right_rounded,
+          color: BrawigoColors.blue950,
+          size: 22,
+        ),
+      ],
+    );
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: BrawigoColors.blue950,
-            ),
-          ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: BrawigoColors.blue950,
-            size: 22,
-          ),
-        ],
-      ),
+      child: onTap != null
+          ? InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(8),
+              child: row,
+            )
+          : row,
     );
   }
 

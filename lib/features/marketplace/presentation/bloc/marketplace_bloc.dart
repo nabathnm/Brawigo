@@ -15,6 +15,16 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
     on<DeleteProduct>(_onDeleteProduct);
   }
 
+  List<Map<String, dynamic>> _mapProductsWithCategory(dynamic response) {
+    if (response == null || response is! List) return [];
+    return List<Map<String, dynamic>>.from(response.map((item) {
+      final map = Map<String, dynamic>.from(item as Map);
+      final cat = map['categories'] as Map<String, dynamic>?;
+      map['category_name'] = cat?['name']?.toString() ?? 'Lainnya';
+      return map;
+    }));
+  }
+
   Future<void> _onLoadSellerProducts(LoadSellerProducts event, Emitter<MarketplaceState> emit) async {
     emit(MarketplaceLoading());
     try {
@@ -23,11 +33,11 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
 
       final response = await _supabase
           .from('products')
-          .select()
+          .select('*, categories(id, name, icon)')
           .eq('seller_id', user.id)
           .order('created_at', ascending: false);
       
-      final products = List<Map<String, dynamic>>.from(response);
+      final products = _mapProductsWithCategory(response);
       emit(MarketplaceLoaded(products: products));
     } catch (e) {
       emit(MarketplaceError(message: 'Gagal memuat produk seller: ${e.toString()}'));
@@ -39,10 +49,10 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
     try {
       final response = await _supabase
           .from('products')
-          .select()
+          .select('*, categories(id, name, icon)')
           .order('created_at', ascending: false);
 
-      final products = List<Map<String, dynamic>>.from(response);
+      final products = _mapProductsWithCategory(response);
       emit(MarketplaceLoaded(products: products));
     } catch (e) {
       emit(MarketplaceError(message: 'Gagal memuat produk: ${e.toString()}'));
@@ -115,10 +125,10 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
       // 4. Muat ulang daftar produk seller
       final response = await _supabase
           .from('products')
-          .select()
+          .select('*, categories(id, name, icon)')
           .eq('seller_id', user.id)
           .order('created_at', ascending: false);
-      final products = List<Map<String, dynamic>>.from(response);
+      final products = _mapProductsWithCategory(response);
       emit(MarketplaceLoaded(products: products));
     } catch (e) {
       emit(MarketplaceError(message: 'Gagal menambah produk: ${e.toString()}'));
@@ -218,17 +228,17 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
       if (user != null) {
         final response = await _supabase
             .from('products')
-            .select()
+            .select('*, categories(id, name, icon)')
             .eq('seller_id', user.id)
             .order('created_at', ascending: false);
-        final products = List<Map<String, dynamic>>.from(response);
+        final products = _mapProductsWithCategory(response);
         emit(MarketplaceLoaded(products: products));
       } else {
         final response = await _supabase
             .from('products')
-            .select()
+            .select('*, categories(id, name, icon)')
             .order('created_at', ascending: false);
-        final products = List<Map<String, dynamic>>.from(response);
+        final products = _mapProductsWithCategory(response);
         emit(MarketplaceLoaded(products: products));
       }
     } catch (e) {
@@ -272,17 +282,17 @@ class MarketplaceBloc extends Bloc<MarketplaceEvent, MarketplaceState> {
       if (user != null) {
         final response = await _supabase
             .from('products')
-            .select()
+            .select('*, categories(id, name, icon)')
             .eq('seller_id', user.id)
             .order('created_at', ascending: false);
-        final products = List<Map<String, dynamic>>.from(response);
+        final products = _mapProductsWithCategory(response);
         emit(MarketplaceLoaded(products: products));
       } else {
         final response = await _supabase
             .from('products')
-            .select()
+            .select('*, categories(id, name, icon)')
             .order('created_at', ascending: false);
-        final products = List<Map<String, dynamic>>.from(response);
+        final products = _mapProductsWithCategory(response);
         emit(MarketplaceLoaded(products: products));
       }
     } catch (e) {

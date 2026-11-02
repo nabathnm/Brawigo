@@ -99,14 +99,15 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
 
       final response = await _supabase
           .from('products')
-          .select('*, categories(category_name)')
+          .select('*, categories(id, name, icon)')
           .eq('id', productId)
           .maybeSingle();
 
       if (response != null && mounted) {
         final Map<String, dynamic> updatedMap = Map<String, dynamic>.from(response);
-        if (response['categories'] != null && response['categories']['category_name'] != null) {
-          updatedMap['category_name'] = response['categories']['category_name'];
+        final cat = response['categories'] as Map<String, dynamic>?;
+        if (cat != null && cat['name'] != null) {
+          updatedMap['category_name'] = cat['name'];
         }
 
         setState(() {
@@ -155,7 +156,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> {
   @override
   Widget build(BuildContext context) {
     final name = _currentProduct['product_name']?.toString() ?? 'Tanpa Nama';
-    final categoryName = _currentProduct['category_name']?.toString() ?? 'Alat Elektronik';
+    final categoryName = _currentProduct['category_name']?.toString() ??
+        (_currentProduct['categories'] is Map ? _currentProduct['categories']['name']?.toString() : null) ??
+        'Lainnya';
     final priceVal = _currentProduct['price'] ?? 0;
     final formattedPrice = _formatCurrency(priceVal);
     final stock = (_currentProduct['stock'] as num?)?.toInt() ?? 0;

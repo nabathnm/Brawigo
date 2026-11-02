@@ -36,8 +36,7 @@ class MyApp extends StatelessWidget {
               AuthBloc(supabaseClient: Supabase.instance.client),
         ),
         BlocProvider<MarketplaceBloc>(
-          create: (context) =>
-              MarketplaceBloc()..add(LoadProducts()),
+          create: (context) => MarketplaceBloc()..add(LoadProducts()),
         ),
       ],
       child: MaterialApp.router(

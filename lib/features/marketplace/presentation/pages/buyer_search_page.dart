@@ -47,7 +47,7 @@ class _BuyerSearchPageState extends State<BuyerSearchPage> {
     try {
       final response = await Supabase.instance.client
           .from('products')
-          .select()
+          .select('*, categories(id, name)')
           .inFilter('id', viewedIds)
           .limit(10);
       
@@ -62,11 +62,13 @@ class _BuyerSearchPageState extends State<BuyerSearchPage> {
           viewed.add({
             'id': p['id']?.toString() ?? '',
             'name': p['product_name']?.toString() ?? '',
-            'category': 'Kategori',
+            'category': (p['categories'] is Map ? p['categories']['name']?.toString() : null) ?? (p['category_name']?.toString()) ?? 'Lainnya',
             'price': p['price'] != null ? formatCurrency.format(p['price']) : '',
             'image_url': p['thumbnail_url']?.toString() ?? '',
             'description': p['description']?.toString() ?? '',
             'seller_id': p['seller_id']?.toString() ?? '',
+            'stock': p['stock']?.toString() ?? '0',
+            'status': p['status']?.toString() ?? 'active',
           });
         }
       }

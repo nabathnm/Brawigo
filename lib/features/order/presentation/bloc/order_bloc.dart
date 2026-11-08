@@ -63,12 +63,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         'created_at': DateTime.now().toIso8601String(),
       });
 
-      // Kurangi stok barang
-      try {
-        final newStock = (currentStock - event.quantity).clamp(0, 999999);
-        await _supabase.from('products').update({'stock': newStock}).eq('id', event.productId);
-      } catch (_) {}
-
       emit(const OrderSuccess(message: 'Pesanan berhasil dibuat!'));
     } catch (e) {
       emit(OrderError('Gagal membuat order: ${e.toString()}'));
@@ -147,21 +141,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
           .from('orders')
           .update(updateData)
           .eq('id', event.orderId);
-
-      // Jika pesanan dibatalkan, kembalikan stok barang
-      if (event.status == 'cancelled') {
-        final pId = orderRes['product_id']?.toString();
-        final qty = (orderRes['quantity'] as num?)?.toInt() ?? 1;
-        if (pId != null && pId.isNotEmpty) {
-          try {
-            final pRes = await _supabase.from('products').select('stock').eq('id', pId).maybeSingle();
-            if (pRes != null && pRes['stock'] != null) {
-              final curStock = (pRes['stock'] as num).toInt();
-              await _supabase.from('products').update({'stock': curStock + qty}).eq('id', pId);
-            }
-          } catch (_) {}
-        }
-      }
 
       emit(const OrderSuccess(message: 'Status pesanan berhasil diperbarui.'));
     } catch (e) {

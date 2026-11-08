@@ -8,8 +8,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/order_bloc.dart';
-import '../bloc/order_event.dart';
 import '../bloc/order_state.dart';
 
 class OrderDetailPage extends StatefulWidget {
@@ -216,6 +216,106 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     } catch (_) {}
   }
 
+  Future<void> _updateOrderStatusAndPop({
+    required String status,
+    Map<String, dynamic>? extraData,
+    required String chatMessage,
+    String? successMessage,
+    String? successTitle,
+  }) async {
+    setState(() => _isActionSubmitting = true);
+    final currentUserId = _supabase.auth.currentUser?.id;
+    final isSeller = currentUserId != null && currentUserId == _order?['seller_id'];
+
+    try {
+      final updateData = <String, dynamic>{
+        'order_status': status,
+        ...?extraData,
+      };
+
+      await _supabase
+          .from('orders')
+          .update(updateData)
+          .eq('id', widget.orderId);
+
+      await _sendChatUpdate(chatMessage);
+
+      if (mounted) {
+        BrawigoToast.showSuccess(
+          context,
+          message: successMessage ?? 'Status pesanan berhasil diperbarui.',
+          title: successTitle ?? 'Berhasil!',
+        );
+
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        } else {
+          context.go(isSeller ? '/seller/orders' : '/orders');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        BrawigoToast.showError(
+          context,
+          message: e.toString(),
+          title: 'Gagal Memperbarui Status Pesanan',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isActionSubmitting = false);
+      }
+    }
+  }
+
+  Future<void> _handleCancelOrder({String? rejectReason}) async {
+    setState(() => _isLoading = true);
+    final currentUserId = _supabase.auth.currentUser?.id;
+    final isSeller = currentUserId != null && currentUserId == _order?['seller_id'];
+    final productName = _order?['product_name_snapshot'] ?? 'produk';
+
+    try {
+      final updateData = <String, dynamic>{
+        'order_status': 'cancelled',
+        if (rejectReason != null) 'notes': 'Ditolak Penjual: $rejectReason',
+      };
+
+      // 1. Update status pesanan di database
+      await _supabase.from('orders').update(updateData).eq('id', widget.orderId);
+
+      // 3. Kirim pesan pembaruan ke chat
+      if (isSeller) {
+        await _sendChatUpdate("❌ Penjual menolak pesanan '$productName'. Alasan: ${rejectReason ?? 'Dibatalkan'}. Stok produk dikembalikan.");
+      } else {
+        await _sendChatUpdate("❌ Pesanan '$productName' telah dibatalkan.");
+      }
+
+      if (mounted) {
+        BrawigoToast.showSuccess(
+          context,
+          message: isSeller ? 'Pesanan berhasil ditolak.' : 'Pesanan berhasil dibatalkan.',
+          title: 'Pesanan Dibatalkan',
+        );
+
+        // Pop kembali ke halaman list pesanan
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop(true);
+        } else {
+          context.go(isSeller ? '/seller/orders' : '/orders');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        BrawigoToast.showError(
+          context,
+          message: e.toString(),
+          title: 'Gagal Membatalkan Pesanan',
+        );
+      }
+    }
+  }
+
   void _confirmCancelOrder() {
     showDialog(
       context: context,
@@ -234,11 +334,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(dialogCtx);
-              context.read<OrderBloc>().add(UpdateOrderStatus(orderId: widget.orderId, status: 'cancelled'));
-              final productName = _order?['product_name_snapshot'] ?? 'produk';
-              await _sendChatUpdate("❌ Pesanan '$productName' telah dibatalkan.");
+              _handleCancelOrder();
             },
             child: const Text('Batalkan'),
           ),
@@ -1203,20 +1301,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                         ),
                         onPressed: selectedReason == null
                             ? null
-                            : () async {
+                            : () {
                                 Navigator.pop(ctx);
-                                if (mounted) {
-                                  context.read<OrderBloc>().add(UpdateOrderStatus(
-                                    orderId: widget.orderId,
-                                    status: 'cancelled',
-                                    extraData: {
-                                      'notes': 'Ditolak Penjual: $selectedReason',
-                                    },
-                                  ));
-                                  await _sendChatUpdate(
-                                    "❌ Penjual menolak pesanan '$productName'. Alasan: $selectedReason. Stok produk akan dikembalikan.",
-                                  );
-                                }
+                                _handleCancelOrder(rejectReason: selectedReason);
                               },
                         child: Text(
                           'Kirim',
@@ -1261,12 +1348,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 icon: Icons.check_circle_outline_rounded,
                 color: const Color(0xFF2B5F9E),
                 isLoading: _isActionSubmitting,
-                onPressed: () async {
-                  context.read<OrderBloc>().add(
-                    UpdateOrderStatus(orderId: widget.orderId, status: 'waiting_payment_courier'),
-                  );
-                  await _sendChatUpdate("✅ Penjual telah mengonfirmasi pesanan '$productName'. Silakan pesan kurir ojek online dan unggah bukti pemesanan.");
-                },
+                onPressed: () => _updateOrderStatusAndPop(
+                  status: 'waiting_payment_courier',
+                  chatMessage: "✅ Penjual telah mengonfirmasi pesanan '$productName'. Silakan pesan kurir ojek online dan unggah bukti pemesanan.",
+                  successMessage: 'Pesanan berhasil dikonfirmasi.',
+                ),
               ),
               const SizedBox(height: 10),
               SizedBox(
@@ -1446,18 +1532,16 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       }
 
                       if (mounted) {
-                        context.read<OrderBloc>().add(
-                          UpdateOrderStatus(
-                            orderId: widget.orderId,
-                            status: 'waiting_pickup',
-                            extraData: {
-                              'courier_proof_url': cUrl,
-                              if (pUrl != null) 'payment_proof_url': pUrl,
-                              if (pUrl != null) 'payment_status': 'paid',
-                            },
-                          ),
+                        await _updateOrderStatusAndPop(
+                          status: 'waiting_pickup',
+                          extraData: {
+                            'courier_proof_url': cUrl,
+                            if (pUrl != null) 'payment_proof_url': pUrl,
+                            if (pUrl != null) 'payment_status': 'paid',
+                          },
+                          chatMessage: "🛵 Pembeli telah mengunggah bukti pemesanan kurir & pembayaran untuk '$productName'. Mohon bersiap menyerahkan barang ke kurir.",
+                          successMessage: 'Bukti kurir dan pembayaran berhasil dikirim.',
                         );
-                        await _sendChatUpdate("🛵 Pembeli telah mengunggah bukti pemesanan kurir & pembayaran untuk '$productName'. Mohon bersiap menyerahkan barang ke kurir.");
                       }
                     } catch (e) {
                       if (mounted) {
@@ -1546,16 +1630,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     try {
                       final pUrl = await _uploadImageFile(_pickupProofImage!, 'pickup_proofs');
                       if (mounted) {
-                        context.read<OrderBloc>().add(
-                          UpdateOrderStatus(
-                            orderId: widget.orderId,
-                            status: 'on_delivery',
-                            extraData: {
-                              'pickup_proof_url': pUrl,
-                            },
-                          ),
+                        await _updateOrderStatusAndPop(
+                          status: 'on_delivery',
+                          extraData: {
+                            'pickup_proof_url': pUrl,
+                          },
+                          chatMessage: "📦 Penjual telah menyerahkan barang '$productName' ke kurir ojek online. Barang sedang dalam perjalanan ke alamat Anda!",
+                          successMessage: 'Barang berhasil diserahkan ke kurir.',
                         );
-                        await _sendChatUpdate("📦 Penjual telah menyerahkan barang '$productName' ke kurir ojek online. Barang sedang dalam perjalanan ke alamat Anda!");
                       }
                     } catch (e) {
                       if (mounted) {
@@ -1610,12 +1692,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 icon: Icons.check_circle_rounded,
                 color: const Color(0xFF16A34A),
                 isLoading: _isActionSubmitting,
-                onPressed: () async {
-                  context.read<OrderBloc>().add(
-                    UpdateOrderStatus(orderId: widget.orderId, status: 'completed'),
-                  );
-                  await _sendChatUpdate("🎉 Pembeli telah menerima barang '$productName'. Transaksi selesai!");
-                },
+                onPressed: () => _updateOrderStatusAndPop(
+                  status: 'completed',
+                  chatMessage: "🎉 Pembeli telah menerima barang '$productName'. Transaksi selesai!",
+                  successMessage: 'Pesanan selesai! Terima kasih.',
+                ),
               ),
             ],
           );
@@ -1644,12 +1725,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 icon: Icons.handshake_outlined,
                 color: const Color(0xFF2B5F9E),
                 isLoading: _isActionSubmitting,
-                onPressed: () async {
-                  context.read<OrderBloc>().add(
-                    UpdateOrderStatus(orderId: widget.orderId, status: 'waiting_meetup'),
-                  );
-                  await _sendChatUpdate("✅ Penjual telah mengonfirmasi jadwal & lokasi COD untuk '$productName'!");
-                },
+                onPressed: () => _updateOrderStatusAndPop(
+                  status: 'waiting_meetup',
+                  chatMessage: "✅ Penjual telah mengonfirmasi jadwal & lokasi COD untuk '$productName'!",
+                  successMessage: 'Jadwal & lokasi COD berhasil dikonfirmasi.',
+                ),
               ),
               const SizedBox(height: 10),
               _buildCancelButton(),
@@ -1688,12 +1768,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               icon: Icons.check_circle_rounded,
               color: const Color(0xFF16A34A),
               isLoading: _isActionSubmitting,
-              onPressed: () async {
-                context.read<OrderBloc>().add(
-                  UpdateOrderStatus(orderId: widget.orderId, status: 'completed'),
-                );
-                await _sendChatUpdate("🎉 Transaksi COD '$productName' telah selesai!");
-              },
+              onPressed: () => _updateOrderStatusAndPop(
+                status: 'completed',
+                chatMessage: "🎉 Transaksi COD '$productName' telah selesai!",
+                successMessage: 'Transaksi COD selesai! Terima kasih.',
+              ),
             ),
             const SizedBox(height: 10),
             _buildCancelButton(),
@@ -1718,12 +1797,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 icon: Icons.check_circle_outline_rounded,
                 color: const Color(0xFF2B5F9E),
                 isLoading: _isActionSubmitting,
-                onPressed: () async {
-                  context.read<OrderBloc>().add(
-                    UpdateOrderStatus(orderId: widget.orderId, status: 'confirmed'),
-                  );
-                  await _sendChatUpdate("✅ Penjual telah mengonfirmasi pesanan '$productName'. Silakan datang ke toko sesuai jadwal yang telah disepakati.");
-                },
+                onPressed: () => _updateOrderStatusAndPop(
+                  status: 'confirmed',
+                  chatMessage: "✅ Penjual telah mengonfirmasi pesanan '$productName'. Silakan datang ke toko sesuai jadwal yang telah disepakati.",
+                  successMessage: 'Pesanan berhasil dikonfirmasi.',
+                ),
               ),
               const SizedBox(height: 10),
               // Tolak button
@@ -1786,12 +1864,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 icon: Icons.handshake_outlined,
                 color: const Color(0xFF2B5F9E),
                 isLoading: _isActionSubmitting,
-                onPressed: () async {
-                  context.read<OrderBloc>().add(
-                    UpdateOrderStatus(orderId: widget.orderId, status: 'waiting_meetup'),
-                  );
-                  await _sendChatUpdate("🤝 Pembeli sedang dalam proses meetup untuk mengambil barang '$productName'.");
-                },
+                onPressed: () => _updateOrderStatusAndPop(
+                  status: 'waiting_meetup',
+                  chatMessage: "🤝 Pembeli sedang dalam proses meetup untuk mengambil barang '$productName'.",
+                  successMessage: 'Status meetup aktif. Silakan temui penjual.',
+                ),
               ),
             ],
           );
@@ -1816,12 +1893,11 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 icon: Icons.check_circle_rounded,
                 color: const Color(0xFF16A34A),
                 isLoading: _isActionSubmitting,
-                onPressed: () async {
-                  context.read<OrderBloc>().add(
-                    UpdateOrderStatus(orderId: widget.orderId, status: 'completed'),
-                  );
-                  await _sendChatUpdate("🎉 Pembeli telah menerima barang '$productName'. Transaksi selesai!");
-                },
+                onPressed: () => _updateOrderStatusAndPop(
+                  status: 'completed',
+                  chatMessage: "🎉 Pembeli telah menerima barang '$productName'. Transaksi selesai!",
+                  successMessage: 'Pesanan selesai! Terima kasih.',
+                ),
               ),
             ],
           );
@@ -2053,7 +2129,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       final existingConvs = await _supabase
           .from('conversations')
           .select('id')
-          .or('and(buyer_id.eq.$buyerId,seller_id.eq.$sellerId),and(buyer_id.eq.$sellerId,seller_id.eq.$buyerId)')
+          .eq('buyer_id', buyerId)
+          .eq('seller_id', sellerId)
           .limit(1);
 
       String conversationId;
@@ -2072,7 +2149,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             final convList = await _supabase
                 .from('conversations')
                 .select('id')
-                .or('and(buyer_id.eq.$buyerId,seller_id.eq.$sellerId),and(buyer_id.eq.$sellerId,seller_id.eq.$buyerId)')
+                .eq('buyer_id', buyerId)
+                .eq('seller_id', sellerId)
                 .limit(1);
             conversationId = convList.first['id'];
           } else {
@@ -2089,6 +2167,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             conversationId: conversationId,
             otherUserName: otherUserName,
             otherUserId: otherUserId,
+            otherUserPhoto: _otherUserProfile?['profile_photo_url']?.toString(),
           ),
         ),
       );

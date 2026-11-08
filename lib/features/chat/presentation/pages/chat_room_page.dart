@@ -8,6 +8,7 @@ class ChatRoomPage extends StatefulWidget {
   final String conversationId;
   final String otherUserName;
   final String otherUserId;
+  final String? otherUserPhoto;
   final Map<String, String>? productData;
   final bool sendProductMention;
 
@@ -16,6 +17,7 @@ class ChatRoomPage extends StatefulWidget {
     required this.conversationId,
     required this.otherUserName,
     required this.otherUserId,
+    this.otherUserPhoto,
     this.productData,
     this.sendProductMention = false,
   });
@@ -34,14 +36,19 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
   bool _isSending = false;
   bool _isUploadingImage = false;
   Map<String, String>? _productData;
+  String? _otherUserPhoto;
+  String _otherUserName = '';
 
   @override
   void initState() {
     super.initState();
+    _otherUserPhoto = widget.otherUserPhoto;
+    _otherUserName = widget.otherUserName;
     _productData = widget.productData;
     _loadMessages();
     _subscribeToMessages();
     _markMessagesAsRead();
+    _loadOtherUserProfile();
     if (_productData == null) {
       _loadProductFromDb();
     }
@@ -50,6 +57,29 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
         _sendProductMention();
       });
     }
+  }
+
+  Future<void> _loadOtherUserProfile() async {
+    if (widget.otherUserId.isEmpty) return;
+    try {
+      final res = await _supabase
+          .from('profiles')
+          .select('full_name, profile_photo_url')
+          .eq('id', widget.otherUserId)
+          .maybeSingle();
+      if (res != null && mounted) {
+        final photo = res['profile_photo_url']?.toString();
+        final name = res['full_name']?.toString();
+        setState(() {
+          if (photo != null && photo.isNotEmpty) {
+            _otherUserPhoto = photo;
+          }
+          if (name != null && name.isNotEmpty) {
+            _otherUserName = name;
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -247,15 +277,20 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
             CircleAvatar(
               radius: 18,
               backgroundColor: const Color(0xFF4A7EBB),
-              child: Text(
-                widget.otherUserName.isNotEmpty ? widget.otherUserName[0].toUpperCase() : '?',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
+              backgroundImage: (_otherUserPhoto != null && _otherUserPhoto!.isNotEmpty)
+                  ? NetworkImage(_otherUserPhoto!)
+                  : null,
+              child: (_otherUserPhoto == null || _otherUserPhoto!.isEmpty)
+                  ? Text(
+                      _otherUserName.isNotEmpty ? _otherUserName[0].toUpperCase() : '?',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    )
+                  : null,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
-                widget.otherUserName,
+                _otherUserName.isNotEmpty ? _otherUserName : widget.otherUserName,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -266,16 +301,6 @@ class _ChatRoomPageState extends State<ChatRoomPage> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.call_outlined, color: Color(0xFF2B5F9E)),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF2B5F9E)),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: Column(
         children: [

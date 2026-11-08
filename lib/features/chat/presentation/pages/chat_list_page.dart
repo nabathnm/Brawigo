@@ -25,6 +25,16 @@ class _ChatListPageState extends State<ChatListPage> {
   }
 
   @override
+  void didUpdateWidget(covariant ChatListPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isSeller != widget.isSeller) {
+      _channel?.unsubscribe();
+      _subscribeToChanges();
+      _loadConversations();
+    }
+  }
+
+  @override
   void dispose() {
     _channel?.unsubscribe();
     super.dispose();
@@ -125,11 +135,17 @@ class _ChatListPageState extends State<ChatListPage> {
 
   void _subscribeToChanges() {
     _channel = _supabase
-        .channel('chat_list_changes')
+        .channel('chat_list_changes_${widget.isSeller ? "seller" : "buyer"}_${DateTime.now().millisecondsSinceEpoch}')
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'messages',
+          callback: (_) => _loadConversations(),
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'conversations',
           callback: (_) => _loadConversations(),
         )
         .subscribe();
@@ -226,6 +242,7 @@ class _ChatListPageState extends State<ChatListPage> {
                                         conversationId: conv['id'],
                                         otherUserName: conv['other_user_name'],
                                         otherUserId: conv['other_user_id'],
+                                        otherUserPhoto: conv['other_user_photo'],
                                       ),
                                     ),
                                   ).then((_) => _loadConversations());

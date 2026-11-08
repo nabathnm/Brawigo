@@ -9,10 +9,8 @@ import '../bloc/marketplace_bloc.dart';
 import '../bloc/marketplace_state.dart';
 import '../bloc/marketplace_event.dart';
 import 'buyer_product_detail_page.dart';
-
-
-
-
+import 'latest_products_page.dart';
+import 'popular_products_page.dart';
 
 class MarketplaceBuyerPage extends StatefulWidget {
   final bool hideBottomNav;
@@ -29,10 +27,14 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
   String _displayName = 'Pengguna';
   String? _photoUrl;
 
+  List<Map<String, dynamic>> _categories = [];
+  String? _selectedCategoryName;
+
   @override
   void initState() {
     super.initState();
     _loadUserProfile();
+    _loadCategories();
 
     _carouselTimer = Timer.periodic(const Duration(seconds: 7), (Timer timer) {
       if (_currentCarouselIndex < 2) {
@@ -57,6 +59,20 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
     super.dispose();
   }
 
+  Future<void> _loadCategories() async {
+    try {
+      final res = await Supabase.instance.client
+          .from('categories')
+          .select('id, name, icon')
+          .order('name');
+      if (mounted) {
+        setState(() {
+          _categories = List<Map<String, dynamic>>.from(res);
+        });
+      }
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,9 +85,62 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
               products = state.products;
             }
 
+            // Filter agar produk yang stoknya habis (<= 0) tidak masuk ke carousel beranda
+            final inStockProducts = products.where((p) {
+              final stockVal = p['stock'];
+              final int stock = (stockVal is int)
+                  ? stockVal
+                  : (stockVal is num)
+                      ? stockVal.toInt()
+                      : int.tryParse(stockVal?.toString() ?? '') ?? 0;
+              final status = (p['status'] ?? 'active').toString().toLowerCase();
+              return stock > 0 && status != 'deleted' && status != 'sold_out';
+            }).toList();
+
+            List<Map<String, dynamic>> displayedProducts = inStockProducts;
+            if (_selectedCategoryName != null &&
+                _selectedCategoryName!.isNotEmpty) {
+              displayedProducts = inStockProducts.where((p) {
+                final pCat =
+                    (p['category_name'] ??
+                            (p['categories'] is Map
+                                ? p['categories']['name']
+                                : null) ??
+                            '')
+                        .toString()
+                        .toLowerCase()
+                        .trim();
+                return pCat == _selectedCategoryName!.toLowerCase().trim();
+              }).toList();
+            }
+
+            // Produk Terbaru diurutkan dari yang paling baru diupload, ambil maksimal 10
+            final latestProducts = List<Map<String, dynamic>>.from(displayedProducts);
+            latestProducts.sort((a, b) {
+              final aTime = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime(1970);
+              final bTime = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime(1970);
+              return bTime.compareTo(aTime);
+            });
+            final latest10 = latestProducts.take(10).toList();
+
+            // Produk Populer diurutkan dari wishlist_count terbanyak, lalu created_at terbaru, ambil maksimal 10
+            final popularProducts = List<Map<String, dynamic>>.from(displayedProducts);
+            popularProducts.sort((a, b) {
+              final aCount = (a['wishlist_count'] as num?)?.toInt() ?? 0;
+              final bCount = (b['wishlist_count'] as num?)?.toInt() ?? 0;
+              if (bCount != aCount) {
+                return bCount.compareTo(aCount);
+              }
+              final aTime = DateTime.tryParse(a['created_at']?.toString() ?? '') ?? DateTime(1970);
+              final bTime = DateTime.tryParse(b['created_at']?.toString() ?? '') ?? DateTime(1970);
+              return bTime.compareTo(aTime);
+            });
+            final popular10 = popularProducts.take(10).toList();
+
             return RefreshIndicator(
               onRefresh: () async {
                 _loadUserProfile();
+                _loadCategories();
                 context.read<MarketplaceBloc>().add(LoadProducts());
               },
               child: SingleChildScrollView(
@@ -82,7 +151,18 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                     _buildHeader(context),
                     _buildSearchBar(),
                     _buildCarousel(),
-                    _buildSectionTitle('Produk Terbaru'),
+                    _buildCategorySelector(),
+                    _buildSectionTitle(
+                      'Produk Terbaru',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LatestProductsPage(),
+                          ),
+                        );
+                      },
+                    ),
                     state is MarketplaceLoading
                         ? const Center(
                             child: Padding(
@@ -90,8 +170,18 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                               child: CircularProgressIndicator(),
                             ),
                           )
-                        : _buildHorizontalProductList(products),
-                    _buildSectionTitle('Produk Populer'),
+                        : _buildHorizontalProductList(latest10),
+                    _buildSectionTitle(
+                      'Produk Populer',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PopularProductsPage(),
+                          ),
+                        );
+                      },
+                    ),
                     state is MarketplaceLoading
                         ? const Center(
                             child: Padding(
@@ -99,7 +189,7 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                               child: CircularProgressIndicator(),
                             ),
                           )
-                        : _buildHorizontalProductList(products),
+                        : _buildHorizontalProductList(popular10),
                     const SizedBox(height: 30),
                   ],
                 ),
@@ -321,7 +411,6 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                             Container(
                               width: 70,
                               height: 70,
-
                               child: Image.asset(
                                 'assets/images/logo_brawigo.png',
                                 width: 48,
@@ -386,27 +475,118 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
+  Widget _buildCategorySelector() {
+    if (_categories.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
+          child: Text(
+            'Kategori Produk',
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
               color: BrawigoColors.blue950,
             ),
           ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: BrawigoColors.blue950,
-            size: 22,
+        ),
+        SizedBox(
+          height: 38,
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              dragDevices: {
+                PointerDeviceKind.touch,
+                PointerDeviceKind.mouse,
+                PointerDeviceKind.trackpad,
+              },
+            ),
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              itemCount: _categories.length + 1,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final isAll = index == 0;
+                final catName = isAll
+                    ? 'Semua'
+                    : (_categories[index - 1]['name']?.toString() ?? '');
+                final isSelected = isAll
+                    ? _selectedCategoryName == null
+                    : _selectedCategoryName?.toLowerCase() ==
+                          catName.toLowerCase();
+
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedCategoryName = isAll ? null : catName;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isSelected ? BrawigoColors.blue900 : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected
+                            ? BrawigoColors.blue900
+                            : Colors.grey.shade200,
+                        width: 1,
+                      ),
+                    ),
+                    child: Text(
+                      catName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF4A5568),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionTitle(String title, {VoidCallback? onTap}) {
+    final row = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: BrawigoColors.blue950,
+          ),
+        ),
+        const Icon(
+          Icons.chevron_right_rounded,
+          color: BrawigoColors.blue950,
+          size: 22,
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+      child: onTap != null
+          ? InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(8),
+              child: row,
+            )
+          : row,
     );
   }
 
@@ -426,6 +606,27 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
   }
 
   Widget _buildHorizontalProductList(List<Map<String, dynamic>> products) {
+    if (products.isEmpty) {
+      return Container(
+        height: 120,
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200, width: 1),
+        ),
+        child: const Text(
+          'Tidak ada produk ditemukan.',
+          style: TextStyle(
+            fontSize: 13,
+            color: Color(0xFF64748B),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
+
     return SizedBox(
       height: 250,
       child: ScrollConfiguration(
@@ -449,7 +650,11 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                 product['product_name'] as String? ?? 'Tanpa Nama';
             final String formattedPrice = _formatCurrency(product['price']);
             final String category =
-                product['category_name'] as String? ?? 'Alat';
+                product['category_name'] as String? ??
+                (product['categories'] is Map
+                    ? product['categories']['name'] as String?
+                    : null) ??
+                'Lainnya';
 
             return GestureDetector(
               onTap: () {
@@ -516,6 +721,8 @@ class _MarketplaceBuyerPageState extends State<MarketplaceBuyerPage> {
                                 fontWeight: FontWeight.w500,
                                 color: Color(0xFF64748B),
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const Spacer(),
                             Text(

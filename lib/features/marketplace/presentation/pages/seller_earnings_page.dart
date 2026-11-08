@@ -75,7 +75,9 @@ class _SellerEarningsPageState extends State<SellerEarningsPage> {
       if (createdAtStr == null) return false;
       final dt = DateTime.tryParse(createdAtStr);
       if (dt == null) return false;
-      return dt.year == _selectedMonth.year && dt.month == _selectedMonth.month;
+      // Convert to local time so orders are grouped by the user's local date
+      final localDt = dt.toLocal();
+      return localDt.year == _selectedMonth.year && localDt.month == _selectedMonth.month;
     }).toList();
   }
 
@@ -106,6 +108,91 @@ class _SellerEarningsPageState extends State<SellerEarningsPage> {
     setState(() {
       _selectedMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1);
     });
+  }
+
+  void _showMonthYearPicker() {
+    int tempYear = _selectedMonth.year;
+    const monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+      'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+    ];
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            titlePadding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left_rounded, color: Color(0xFF2B5F9E)),
+                  onPressed: () => setDialogState(() => tempYear--),
+                  tooltip: 'Tahun Sebelumnya',
+                ),
+                Text(
+                  '$tempYear',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF15243C),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right_rounded, color: Color(0xFF2B5F9E)),
+                  onPressed: () => setDialogState(() => tempYear++),
+                  tooltip: 'Tahun Berikutnya',
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 280,
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 2.2,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: 12,
+                itemBuilder: (_, i) {
+                  final isSelected = tempYear == _selectedMonth.year && (i + 1) == _selectedMonth.month;
+                  return InkWell(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() {
+                        _selectedMonth = DateTime(tempYear, i + 1);
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF2B5F9E) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        monthNames[i],
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? Colors.white : const Color(0xFF15243C),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   String _formatMonthYear(DateTime dt) {
@@ -243,19 +330,24 @@ class _SellerEarningsPageState extends State<SellerEarningsPage> {
                               onPressed: _previousMonth,
                               tooltip: 'Bulan Sebelumnya',
                             ),
-                            Row(
-                              children: [
-                                const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF2B5F9E)),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _formatMonthYear(_selectedMonth),
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF15243C),
+                            GestureDetector(
+                              onTap: _showMonthYearPicker,
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today_rounded, size: 16, color: Color(0xFF2B5F9E)),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _formatMonthYear(_selectedMonth),
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF15243C),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 4),
+                                  const Icon(Icons.arrow_drop_down_rounded, size: 20, color: Color(0xFF2B5F9E)),
+                                ],
+                              ),
                             ),
                             IconButton(
                               icon: const Icon(Icons.chevron_right_rounded, color: Color(0xFF2B5F9E)),

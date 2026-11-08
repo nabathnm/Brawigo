@@ -41,8 +41,9 @@ class SellerProductCard extends StatelessWidget {
     final String formattedPrice = _formatCurrency(priceVal);
     final int stock = (product['stock'] as num?)?.toInt() ?? 0;
     final String status = product['status'] as String? ?? 'active';
-    final String categoryName =
-        product['category_name'] as String? ?? 'Alat Elektronik';
+    final String categoryName = product['category_name'] as String? ??
+        (product['categories'] is Map ? product['categories']['name'] as String? : null) ??
+        'Lainnya';
 
     // Atur Badge Status sesuai stok/status
     String badgeText = 'Aktif';

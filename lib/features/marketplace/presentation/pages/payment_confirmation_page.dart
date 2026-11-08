@@ -7,6 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/marketplace_bloc.dart';
+import '../bloc/marketplace_event.dart';
 import 'main_screen.dart';
 
 class PaymentConfirmationPage extends StatefulWidget {
@@ -199,37 +202,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         }
       }
 
-      // 2b. Kurangi stok barang di tabel products
-      if (productId.isNotEmpty) {
-        final purchasedQty = ((widget.checkoutData['quantity'] ?? 1) as num).toInt();
-        // Coba panggil RPC reduce_product_stock jika tersedia di database
-        try {
-          await _supabase.rpc('reduce_product_stock', params: {
-            'p_product_id': productId,
-            'p_quantity': purchasedQty,
-          });
-        } catch (_) {
-          // Fallback langsung update tabel products
-          try {
-            final pRes = await _supabase
-                .from('products')
-                .select('stock')
-                .eq('id', productId)
-                .maybeSingle();
-            if (pRes != null && pRes['stock'] != null) {
-              final curStock = (pRes['stock'] as num).toInt();
-              final nextStock = (curStock - purchasedQty).clamp(0, 999999);
-              await _supabase
-                  .from('products')
-                  .update({'stock': nextStock})
-                  .eq('id', productId);
-            }
-          } catch (updateStockErr) {
-            debugPrint('Catatan: update stok client: $updateStockErr');
-          }
-        }
-      }
-
       // 3. Kirim pesan konfirmasi otomatis ke conversation chat
       if (sellerId.isNotEmpty && sellerId != currentUser.id) {
         try {
@@ -302,10 +274,12 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                 ),
                 onPressed: () {
                   Navigator.pop(dialogContext);
-                  Navigator.pushAndRemoveUntil(
-                    context,
+                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
                     MaterialPageRoute(
-                      builder: (_) => const MainScreen(initialIndex: 3, isSeller: false),
+                      builder: (_) => BlocProvider(
+                        create: (_) => MarketplaceBloc()..add(LoadProducts()),
+                        child: const MainScreen(initialIndex: 3, isSeller: false),
+                      ),
                     ),
                     (route) => false,
                   );

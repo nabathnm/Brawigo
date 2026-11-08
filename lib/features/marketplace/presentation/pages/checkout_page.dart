@@ -761,7 +761,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             ),
                           ] else if (_selectedPickupMethod == 'kurir') ...[
                             const SizedBox(height: 12),
-                            _buildInputLabel("Alamat Pengiriman"),
+                            _buildInputLabel("Alamat Pengambilan Barang"),
                             _buildSubTextField(
                               controller: _deliveryAddressController,
                               hintText: "Jl. Sigura-gura, Sumbersari, Malang",

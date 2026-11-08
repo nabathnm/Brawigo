@@ -10,6 +10,7 @@ import 'package:brawigo/features/marketplace/presentation/pages/manage_products_
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_bloc.dart';
 import 'package:brawigo/features/marketplace/presentation/bloc/marketplace_event.dart';
 import 'package:brawigo/features/marketplace/presentation/pages/wishlist_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'edit_store_profile_page.dart';
 import 'edit_buyer_profile_page.dart';
 
@@ -191,7 +192,7 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
       final user = _supabase.auth.currentUser;
       if (user == null) return;
 
-      // Check active orders
+      // 1. Cek transaksi berjalan di sisi client
       final hasActive = await _hasActiveOrders(user.id);
       if (hasActive && mounted) {
         setState(() => _isDeleting = false);
@@ -203,23 +204,21 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
         return;
       }
 
-      // Delete products if seller
-      if (widget.isSeller) {
-        await _supabase.from('products').delete().eq('seller_id', user.id);
-      }
+      // 2. Eksekusi penghapusan permanen dari database via RPC (termasuk auth.users & seluruh relasi)
+      await _supabase.rpc('delete_user_account');
 
-      // Mark profile as deleted
-      await _supabase.from('profiles').update({
-        'deleted_at': DateTime.now().toIso8601String(),
-        'full_name': '[AKUN DIHAPUS]',
-        'username': 'deleted_${user.id.substring(0, 8)}',
-      }).eq('id', user.id);
-
-      // Sign out
+      // 3. Logout dan alihkan ke halaman login
       if (mounted) {
         context.read<AuthBloc>().add(LogoutRequested());
         await _supabase.auth.signOut();
-        if (mounted) context.go('/login');
+        if (mounted) {
+          BrawigoToast.showSuccess(
+            context,
+            title: 'Akun Berhasil Dihapus',
+            message: 'Akun dan seluruh data Anda telah dihapus secara permanen.',
+          );
+          context.go('/login');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -227,7 +226,7 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
         BrawigoToast.showError(
           context,
           title: 'Gagal',
-          message: 'Gagal menghapus akun: ${e.toString()}',
+          message: 'Gagal menghapus akun: ${e.toString().replaceAll('Exception:', '').trim()}',
         );
       }
     }
@@ -261,6 +260,27 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _openFeedbackForm() async {
+    final uri = Uri.parse('https://forms.gle/9R2hWAZ1pc1E82G86');
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
+      if (mounted) {
+        BrawigoToast.showError(
+          context,
+          title: 'Gagal Membuka Link',
+          message: 'Silakan buka formulir di: https://forms.gle/9R2hWAZ1pc1E82G86',
+        );
+      }
+    }
   }
 
   @override
@@ -398,13 +418,7 @@ class _ProfileHubPageState extends State<ProfileHubPage> {
                             _menuTile(
                               icon: Icons.thumb_up_rounded,
                               label: 'Suka Brawigo? Nilai kami!',
-                              onTap: () {
-                                BrawigoToast.showSuccess(
-                                  context,
-                                  title: 'Terima Kasih!',
-                                  message: 'Terima kasih atas penilaian dan dukunganmu! 🎉',
-                                );
-                              },
+                              onTap: _openFeedbackForm,
                             ),
                           ]),
                           const SizedBox(height: 16),

@@ -249,13 +249,15 @@ class _OrderListPageState extends State<OrderListPage> {
     if (sellerId.isEmpty || sellerId == currentUserId) return;
 
     String displayName = order['seller_name']?.toString() ?? '';
+    String? photoUrl;
     if (displayName.isEmpty || displayName == 'Penjual Brawigo') {
       try {
         final profile = await _supabase
             .from('profiles')
-            .select('full_name, username')
+            .select('full_name, username, profile_photo_url')
             .eq('id', sellerId)
             .maybeSingle();
+        photoUrl = profile?['profile_photo_url']?.toString();
         if (profile != null) {
           displayName = (profile['full_name']?.toString().isNotEmpty == true)
               ? profile['full_name']
@@ -268,7 +270,8 @@ class _OrderListPageState extends State<OrderListPage> {
       final existingConvs = await _supabase
           .from('conversations')
           .select('id')
-          .or('and(buyer_id.eq.$buyerId,seller_id.eq.$sellerId),and(buyer_id.eq.$sellerId,seller_id.eq.$buyerId)')
+          .eq('buyer_id', buyerId)
+          .eq('seller_id', sellerId)
           .limit(1);
 
       String conversationId;
@@ -287,7 +290,8 @@ class _OrderListPageState extends State<OrderListPage> {
             final convList = await _supabase
                 .from('conversations')
                 .select('id')
-                .or('and(buyer_id.eq.$buyerId,seller_id.eq.$sellerId),and(buyer_id.eq.$sellerId,seller_id.eq.$buyerId)')
+                .eq('buyer_id', buyerId)
+                .eq('seller_id', sellerId)
                 .limit(1);
             conversationId = convList.first['id'];
           } else {
@@ -304,6 +308,7 @@ class _OrderListPageState extends State<OrderListPage> {
             conversationId: conversationId,
             otherUserName: displayName,
             otherUserId: sellerId,
+            otherUserPhoto: photoUrl,
           ),
         ),
       );
